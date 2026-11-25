@@ -59,6 +59,12 @@ app/src/main/java/dev/jotnar/materialisland/
 
 La configuración también se puede copiar como JSON desde *Copia de seguridad*, editarla y pegarla.
 
+## Descargar
+
+Descarga `material-island-<versión>.apk` desde la [última release](https://github.com/JotnarDev/material-island/releases/latest)
+e instálala. En Android 13+, si no deja activar la accesibilidad: **Ajustes → Apps → Material Island → ⋮ →
+Permitir ajustes restringidos**, o usa los comandos ADB de abajo.
+
 ## Compilar e instalar
 
 Requisitos: JDK 17, Android SDK con la plataforma `android-37.2`.
@@ -110,3 +116,7 @@ Archivos y guía de uso en [`brand/`](brand/).
 - [LiveBridge](https://github.com/appsfolder/livebridge): detección de códigos de verificación
 - [OmniLand](https://github.com/andrasulthan-alt/OmniLand): burbuja secundaria, eventos del sistema, gestos en reposo
 - [SmartIsland](https://github.com/agupta07505/SmartIsland): respuesta rápida, tarjetas expandidas
+
+## Licencia
+
+[MIT](LICENSE) © JotnarDev

@@ -15,6 +15,11 @@
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203%20Expressive-4285F4?logo=jetpackcompose&logoColor=white">
   <img alt="No internet permission" src="https://img.shields.io/badge/internet-none-111318">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0B57D0"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/JotnarDev/material-island/releases/latest"><b>⬇ Download the latest APK</b></a>
 </p>
 
 <p align="center">🇪🇸 <a href="README.es.md">Versión en español</a></p>
@@ -27,7 +32,27 @@ made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
 
 It has **no internet permission**. Nothing you see in the island ever leaves the phone.
 
-<!-- SCREENSHOTS -->
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screens/music-expanded.png" alt="Music card with morphing album art and wavy seek bar"></td>
+    <td width="50%"><img src="docs/screens/call-expanded.png" alt="Incoming call with answer and decline"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/timer-expanded.png" alt="Timer card"></td>
+    <td><img src="docs/screens/nav-expanded.png" alt="Navigation card"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/msg-expanded.png" alt="Message with quick reply"></td>
+    <td rowspan="2" valign="top"><img src="docs/screens/compact.png" alt="Compact states: music, timer, navigation, download, two activities at once, verification code, charging"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screens/app.png" width="300" alt="Settings app with live preview and demo activities"></td>
+  </tr>
+</table>
+
+<sub>All screenshots use the app's built-in demo activities.</sub>
 
 ## Features
 
@@ -54,6 +79,18 @@ And also:
 
 ## Install
 
+### Download
+
+1. Get `material-island-<version>.apk` from the [latest release](https://github.com/JotnarDev/material-island/releases/latest) and open it on your phone. Android will ask you to allow installs from your browser or file manager.
+2. Open **Material Island** and turn on what it asks for: **notification access** and the **accessibility service**.
+3. On Android 13 and newer, sideloaded apps can't get accessibility right away. If the switch is greyed out, go to
+   **Settings → Apps → Material Island → ⋮ → Allow restricted settings**, then try again.
+   Or grant everything at once over ADB, as shown below.
+
+Requires Android 12 or newer. A phone with a centred hole-punch camera looks best.
+
+### Build from source
+
 You need JDK 17 and the Android SDK with the `android-37.2` platform.
 
 ```bash
@@ -61,7 +98,9 @@ You need JDK 17 and the Android SDK with the `android-37.2` platform.
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-Open the app and grant the permissions it lists. Or grant them all over ADB, which also skips Android's "restricted setting" warning:
+### Grant permissions over ADB
+
+This also skips Android's "restricted setting" warning:
 
 ```bash
 P=dev.jotnar.materialisland
@@ -149,3 +188,7 @@ These projects provided ideas. Material Island's code is its own.
 - [LiveBridge](https://github.com/appsfolder/livebridge): verification-code detection
 - [OmniLand](https://github.com/andrasulthan-alt/OmniLand): secondary bubble, system events, resting gestures
 - [SmartIsland](https://github.com/agupta07505/SmartIsland): quick reply and expanded cards
+
+## License
+
+[MIT](LICENSE) © JotnarDev

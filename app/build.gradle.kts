@@ -23,7 +23,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Uso personal: firmado con la clave de debug para instalar directo por ADB.
+            // Firmado con la clave de debug de la máquina que compila: la APK de GitHub Releases
+            // y las instalaciones por ADB comparten firma, así que se actualizan sin desinstalar.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
