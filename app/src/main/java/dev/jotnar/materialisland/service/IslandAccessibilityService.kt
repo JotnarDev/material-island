@@ -4,6 +4,14 @@ import android.accessibilityservice.AccessibilityService
 import android.content.res.Configuration
 import android.view.accessibility.AccessibilityEvent
 import dev.jotnar.materialisland.core.IslandStore
+import dev.jotnar.materialisland.core.SystemHeadsUp
+import dev.jotnar.materialisland.data.SettingsStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import dev.jotnar.materialisland.core.SystemEventMonitor
 import dev.jotnar.materialisland.overlay.IslandOverlay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,12 +23,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class IslandAccessibilityService : AccessibilityService() {
     private var overlay: IslandOverlay? = null
     private var system: SystemEventMonitor? = null
+    private var headsUpJob: Job? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         overlay = IslandOverlay(this).also { it.start() }
         system = SystemEventMonitor(this).also { it.start() }
         running.value = true
+        // Mientras la isla vive y es "la principal", el sistema no muestra emergentes.
+        headsUpJob = CoroutineScope(Dispatchers.Main).launch {
+            SettingsStore.flow.map { it.islandIsPrimary }.distinctUntilChanged().collect { primary ->
+                SystemHeadsUp.setEnabled(this@IslandAccessibilityService, !primary)
+            }
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -50,6 +65,9 @@ class IslandAccessibilityService : AccessibilityService() {
 
     private fun teardown() {
         running.value = false
+        headsUpJob?.cancel(); headsUpJob = null
+        // Red de seguridad: si la isla se apaga, vuelven los emergentes del sistema.
+        if (SettingsStore.current.islandIsPrimary) SystemHeadsUp.setEnabled(this, true)
         system?.stop(); system = null
         overlay?.stop(); overlay = null
     }

@@ -88,7 +88,7 @@ object NotificationParser {
     ): Result {
         val n = sbn.notification ?: return Result.Ignore
         val pkg = sbn.packageName
-        if (pkg == ctx.packageName || pkg == "android" || pkg == "com.android.systemui") return Result.Ignore
+        if ((pkg == ctx.packageName && sbn.id != 4242) || pkg == "android" || pkg == "com.android.systemui") return Result.Ignore
         if (pkg in s.blockedApps) return Result.Ignore
         if ((n.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return Result.Ignore
         val ex: Bundle = n.extras ?: Bundle()

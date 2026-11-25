@@ -73,6 +73,7 @@ adb shell settings put secure enabled_accessibility_services $P/$P.service.Islan
 adb shell dumpsys deviceidle whitelist +$P
 adb shell pm grant $P android.permission.BLUETOOTH_CONNECT
 adb shell appops set $P RECEIVE_SENSITIVE_NOTIFICATIONS allow   # códigos OTP en Android 15+
+adb shell pm grant $P android.permission.WRITE_SECURE_SETTINGS     # "La isla es la principal"
 ```
 
 > Ojo: `settings put … enabled_accessibility_services` reemplaza la lista. Si tienes otros

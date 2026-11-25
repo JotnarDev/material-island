@@ -123,6 +123,8 @@ data class IslandSettings(
     val hideOnLockscreen: Boolean = false,
     val hideMediaWhenAppOpen: Boolean = true,
     val respectDnd: Boolean = true,
+    /** Apaga las notificaciones emergentes del sistema mientras la isla está activa. */
+    val islandIsPrimary: Boolean = false,
     val showSecondary: Boolean = true,
     val haptics: Boolean = true,
     /** Muestra el contorno de la isla en reposo para calibrar con la cámara. */

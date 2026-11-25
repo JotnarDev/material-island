@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -262,7 +263,30 @@ fun GesturesScreen(onBack: () -> Unit) {
 @Composable
 fun BehaviorScreen(onBack: () -> Unit) {
     val s = settings()
+    val ctx = LocalContext.current
+    val canWrite = remember { dev.jotnar.materialisland.core.SystemHeadsUp.canWrite(ctx) }
     SettingsScaffold("Comportamiento", onBack) {
+        GroupTitle("Notificaciones del sistema")
+        Group(
+            {
+                SwitchRow(
+                    "La isla es la principal", s.islandIsPrimary && canWrite,
+                    if (canWrite) "Apaga las notificaciones emergentes del sistema. Siguen en la barra y el panel. Si la isla se desactiva, vuelven solas."
+                    else "Necesita un permiso que solo se da por ADB (ver abajo)",
+                    Icons.Rounded.Star,
+                ) { v -> if (canWrite) set { it.copy(islandIsPrimary = v) } }
+            },
+            {
+                dev.jotnar.materialisland.ui.NavRow("Enviar notificación de prueba", "Para comprobar que no sale duplicada", Icons.Rounded.Send) {
+                    dev.jotnar.materialisland.core.SystemHeadsUp.postTest(ctx)
+                }
+            },
+        )
+        if (!canWrite) Text(
+            "adb shell pm grant dev.jotnar.materialisland android.permission.WRITE_SECURE_SETTINGS",
+            fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp),
+        )
         GroupTitle("Expandida")
         Group(
             {
