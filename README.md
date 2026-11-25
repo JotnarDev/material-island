@@ -1,70 +1,67 @@
-# Material Island
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/lockup-horizontal-color-dark.svg">
+    <img src="brand/lockup-horizontal-color.svg" height="84" alt="Material Island">
+  </picture>
+</p>
 
-Isla dinámica para Android con el estilo del Pixel: Material You, formas y muelles de
-Material 3 Expressive. Hecha para el Pixel 10 Pro (Android 17), funciona en cualquier Android 12+.
+<p align="center">
+  <b>A dynamic island for Android, built the Pixel way.</b><br>
+  Material You colour, Material 3 Expressive shapes and springs, wrapped around your camera hole.
+</p>
 
-Sin permiso de internet: nada sale del teléfono.
+<p align="center">
+  <img alt="Android 12+" src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white">
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white">
+  <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203%20Expressive-4285F4?logo=jetpackcompose&logoColor=white">
+  <img alt="No internet permission" src="https://img.shields.io/badge/internet-none-111318">
+</p>
 
-## Qué hace
+<p align="center">🇪🇸 <a href="README.es.md">Versión en español</a></p>
 
-| Tipo | Compacta | Expandida |
+---
+
+Material Island turns the camera cutout into a live surface for whatever is happening on your
+phone: music, calls, timers, navigation, downloads, verification codes and unread chats. It is
+made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
+
+It has **no internet permission**. Nothing you see in the island ever leaves the phone.
+
+<!-- SCREENSHOTS -->
+
+## Features
+
+| Activity | Compact | Expanded |
 |---|---|---|
-| Música | Carátula con forma de galleta que gira + ecualizador | Carátula que cambia de forma al pausar, barra ondulada con arrastre, botón play que cambia de forma |
-| Llamadas | Icono verde que late + "Entrante" o cronómetro | Contestar / rechazar / colgar al estilo del marcador del Pixel |
-| Temporizadores | Cuenta atrás en vivo | Número grande + acciones del Reloj |
-| Navegación | Flecha de giro + distancia | Instrucción, llegada, salir |
-| Descargas / Live Updates | Anillo de progreso | Barra ondulada + acciones |
-| Mensajes | — | Aviso con respuesta rápida desde la isla |
-| Códigos (OTP) | Píldora ancha con el código; tocar = copiar | — |
-| Sistema | Carga, batería baja, Bluetooth, modo de sonido, avión, auriculares | — |
+| **Music** | Cookie-shaped album art that spins while playing, plus an equalizer | Art morphs to a square on pause, wavy seek bar you can drag, shape-shifting play button |
+| **Calls** | Pulsing green icon with "Incoming" or a live timer | Answer / decline / hang up, styled like the Pixel dialer |
+| **Timers** | Live countdown | Big digits plus the Clock app's own actions |
+| **Navigation** | Turn arrow and distance | Instruction, arrival time, exit |
+| **Downloads & Live Updates** | Progress ring | Wavy progress bar plus actions (Android 16 promoted notifications) |
+| **Messages** | Unread chats as bubbles to the left of the island | Read and reply without leaving the app you're in |
+| **Verification codes** | Wide pill showing the code; tap to copy | — |
+| **System** | Charging, low battery, Bluetooth, ringer mode, airplane mode, headphones | — |
 
-Además: burbujas de mensajes sin leer a la izquierda de la isla (tocar = leer/responder en la isla, mantener = abrir la app), segunda actividad como burbuja al lado (tócala para cambiar), gestos configurables,
-gestos sobre la cámara en reposo (linterna, captura…), se oculta en horizontal / pantalla completa,
-respeta No molestar y vibra con las primitivas hápticas del Pixel.
+And also:
 
-## Mapa del código
+- **Island first.** Turns off the system's pop-up notifications so the island is the only alert surface. They come back by themselves if the island stops.
+- A **second activity** sits next to the island as a small bubble. Tap it to swap.
+- **Configurable gestures** on the island (tap, hold, swipe in every direction) and on the resting camera (flashlight, screenshot, quick settings…).
+- **Hides itself** in landscape, in fullscreen video and games, and on the lock screen.
+- Respects **Do Not Disturb**. Haptics use the Pixel's vibration primitives.
+- **Zero frames when idle.** Nothing animates unless something is playing.
+- **Everything is adjustable** live: size, position, colours, spring bounce and speed, timings and per-app blocking. Your settings export as JSON.
 
-```
-app/src/main/java/dev/jotnar/materialisland/
-├── data/IslandSettings.kt     ← TODA la configuración (valores por defecto aquí)
-├── model/IslandItem.kt        ← Tipos de actividad y su prioridad (Kind)
-├── core/
-│   ├── IslandStore.kt         ← Fuente de verdad: actividades en curso + cola de avisos
-│   ├── NotificationParser.kt  ← Notificación → actividad (añade reglas nuevas aquí)
-│   ├── MediaMonitor.kt        ← Sesiones de música, color de la carátula
-│   ├── SystemEventMonitor.kt  ← Carga, Bluetooth, timbre…
-│   ├── Actions.kt             ← Abrir apps, linterna, hápticos
-│   └── Demo.kt                ← Actividades de prueba
-├── overlay/
-│   ├── IslandView.kt          ← LA ISLA: modos, tamaños, colores, tarjetas por tipo
-│   ├── Components.kt          ← Barra ondulada, carátula con forma, ecualizador, iconos
-│   ├── IslandOverlay.kt       ← Ventana, zona táctil, gestos, expandir/contraer
-│   └── Geometry.kt            ← Busca el agujero de la cámara
-├── service/                   ← Servicio de accesibilidad (ventana) y de notificaciones
-└── ui/                        ← App de ajustes (Material 3 Expressive)
-```
+## Install
 
-### Recetas rápidas
-
-- **Cambiar un valor por defecto**: `data/IslandSettings.kt`.
-- **Nuevo tipo de actividad**: añade un valor a `Kind` (`model/IslandItem.kt`), detéctalo en
-  `NotificationParser.parse`, y píntalo en `CompactLeft`/`CompactRight`/`Card` de `IslandView.kt`.
-- **Cambiar la animación**: `IslandBody` en `IslandView.kt` (`sizeSpec`, `transitionSpec`).
-- **Otra forma para la carátula**: `artMorph` en `Components.kt` (cualquier `MaterialShapes.*`).
-- **Colores**: función `palette()` en `IslandView.kt`.
-
-La configuración también se puede copiar como JSON desde *Copia de seguridad*, editarla y pegarla.
-
-## Compilar e instalar
-
-Requisitos: JDK 17, Android SDK con la plataforma `android-37.2`.
+You need JDK 17 and the Android SDK with the `android-37.2` platform.
 
 ```bash
 ./gradlew assembleRelease
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-Permisos por ADB (evita los pasos manuales y el aviso de "ajuste restringido"):
+Open the app and grant the permissions it lists. Or grant them all over ADB, which also skips Android's "restricted setting" warning:
 
 ```bash
 P=dev.jotnar.materialisland
@@ -72,32 +69,83 @@ adb shell cmd notification allow_listener $P/$P.service.IslandNotificationListen
 adb shell settings put secure enabled_accessibility_services $P/$P.service.IslandAccessibilityService
 adb shell dumpsys deviceidle whitelist +$P
 adb shell pm grant $P android.permission.BLUETOOTH_CONNECT
-adb shell appops set $P RECEIVE_SENSITIVE_NOTIFICATIONS allow   # códigos OTP en Android 15+
-adb shell pm grant $P android.permission.WRITE_SECURE_SETTINGS     # "La isla es la principal"
+adb shell appops set $P RECEIVE_SENSITIVE_NOTIFICATIONS allow   # verification codes on Android 15+
+adb shell pm grant $P android.permission.WRITE_SECURE_SETTINGS     # "Island first"
 ```
 
-Ocultar los iconos de notificaciones de Android en la barra (las burbujas los reemplazan; se reinicia al reiniciar el teléfono):
+> [!WARNING]
+> `settings put … enabled_accessibility_services` **replaces** the whole list. If you already use
+> other accessibility services, append them separated by `:`.
+
+Optionally, hide Android's own notification icons from the status bar, since the bubbles replace them. This resets when the phone reboots:
 
 ```bash
-adb shell cmd statusbar send-disable-flag notification-icons   # "none" para volver a mostrarlos
+adb shell cmd statusbar send-disable-flag notification-icons   # use "none" to bring them back
 ```
 
-> Ojo: `settings put … enabled_accessibility_services` reemplaza la lista. Si tienes otros
-> servicios de accesibilidad activos, añádelos separados por `:`.
+## How it works
 
-## Notas técnicas
+- **The window** is a `TYPE_ACCESSIBILITY_OVERLAY` owned by an accessibility service. That lets it
+  draw over the status bar without the "display over other apps" permission. The service only
+  watches which app is in the foreground, so it can hide music while that app is open. It never
+  reads screen content.
+- **Only the island takes touches.** The rest of the window is passed through using the hidden
+  `ViewTreeObserver.OnComputeInternalInsetsListener`. That API is limited to apps targeting
+  SDK 30 or lower, so it is unlocked with [HiddenApiBypass](https://github.com/LSPosed/AndroidHiddenApiBypass).
+- **The data** comes from a `NotificationListenerService` (calls, timers, navigation, Live Updates,
+  codes and chats), from `MediaSessionManager` (music, with the album colour picked by Palette)
+  and from system broadcasts.
+- **The camera position** is read from the display cutout path, so the island lines up with the
+  real hole on any device. You can fine-tune it with calibration mode.
 
-- La ventana es `TYPE_ACCESSIBILITY_OVERLAY`: se dibuja sobre la barra de estado sin el permiso
-  de "mostrar sobre otras apps".
-- Solo el rectángulo de la isla recibe toques (`OnComputeInternalInsetsListener`). Esa API oculta
-  está limitada a targetSdk ≤ 30; se desbloquea con
-  [HiddenApiBypass](https://github.com/LSPosed/AndroidHiddenApiBypass).
-- En reposo no hay animaciones vivas: 0 frames por segundo.
+## Project map
 
-## Créditos (ideas, código propio)
+```
+app/src/main/java/dev/jotnar/materialisland/
+├── data/IslandSettings.kt     ← every setting and its default
+├── model/IslandItem.kt        ← activity kinds and their priority
+├── core/
+│   ├── IslandStore.kt         ← source of truth: ongoing activities, alert queue, unread chats
+│   ├── NotificationParser.kt  ← notification → activity (add new rules here)
+│   ├── MediaMonitor.kt        ← media sessions and album colour
+│   ├── SystemEventMonitor.kt  ← charging, Bluetooth, ringer…
+│   ├── Actions.kt             ← opening apps, flashlight, haptics
+│   └── Demo.kt                ← fake activities for testing
+├── overlay/
+│   ├── IslandView.kt          ← the island itself: modes, sizes, colours, cards
+│   ├── Components.kt          ← wavy bar, morphing art, equalizer
+│   ├── IslandOverlay.kt       ← window, touch region, gestures, expand/collapse
+│   └── Geometry.kt            ← finds the camera hole
+├── service/                   ← accessibility service and notification listener
+└── ui/                        ← the settings app
+```
 
-- [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout): ventana de accesibilidad, zona táctil, estilo Expressive
-- [Dynamic Island for Android](https://github.com/ajitpal/dynamic-island-android): lectura de notificaciones
-- [LiveBridge](https://github.com/appsfolder/livebridge): detección de códigos de verificación
-- [OmniLand](https://github.com/andrasulthan-alt/OmniLand): burbuja secundaria, eventos del sistema, gestos en reposo
-- [SmartIsland](https://github.com/agupta07505/SmartIsland): respuesta rápida, tarjetas expandidas
+**Quick recipes**
+
+- **Change a default:** edit `data/IslandSettings.kt`.
+- **Add a new kind of activity:**
+  1. Add it to `Kind` in `model/IslandItem.kt`.
+  2. Detect it in `NotificationParser.parse`.
+  3. Draw it in `CompactLeft`, `CompactRight` and `Card` in `IslandView.kt`.
+- **Tweak the motion:** see `IslandBody` in `IslandView.kt` (`sizeSpec`, `transitionSpec`).
+- **Use a different album-art shape:** change `artMorph` in `Components.kt`. Any `MaterialShapes.*` works.
+
+## Built with
+
+Kotlin 2.4 · Jetpack Compose (BOM 2026.11) · Material 3 Expressive (`MaterialShapes`, `MotionScheme.expressive()`, `LoadingIndicator`) · `androidx.graphics.shapes` morphing · AGP 9.5 · kotlinx.serialization · HiddenApiBypass.
+
+## Identity
+
+The logo, **Split**, shows the island and the camera dot pulling apart, caught mid-spring. That is
+the same gesture the island makes when a second activity pops out beside it. The logo files, colours
+and usage guide are in [`brand/`](brand/).
+
+## Credits
+
+These projects provided ideas. Material Island's code is its own.
+
+- [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout): accessibility-overlay window, touch region, Expressive look
+- [Dynamic Island for Android](https://github.com/ajitpal/dynamic-island-android): notification parsing
+- [LiveBridge](https://github.com/appsfolder/livebridge): verification-code detection
+- [OmniLand](https://github.com/andrasulthan-alt/OmniLand): secondary bubble, system events, resting gestures
+- [SmartIsland](https://github.com/agupta07505/SmartIsland): quick reply and expanded cards
