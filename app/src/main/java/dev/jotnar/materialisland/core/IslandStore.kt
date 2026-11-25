@@ -36,6 +36,17 @@ object IslandStore {
     private val queue = MutableStateFlow<List<IslandItem>>(emptyList())
     private val preferredId = MutableStateFlow<String?>(null)
 
+    /** Mensajes sin leer (burbujas a la izquierda de la isla), el más reciente primero. */
+    private val unreadMap = MutableStateFlow<Map<String, IslandItem>>(emptyMap())
+    val unread: StateFlow<List<IslandItem>> = combine(unreadMap, SettingsStore.flow) { m, s ->
+        if (!s.unreadBubbles) emptyList()
+        else m.values.filter { it.pkg !in s.blockedApps }.sortedByDescending { it.postedAt }
+    }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    fun setUnread(item: IslandItem) { unreadMap.value = unreadMap.value + (item.id to item) }
+    fun removeUnread(id: String) { if (unreadMap.value.containsKey(id)) unreadMap.value = unreadMap.value - id }
+    fun clearUnread() { unreadMap.value = emptyMap() }
+
     /** App en primer plano (la informa el servicio de accesibilidad). */
     val foregroundPkg = MutableStateFlow<String?>(null)
 

@@ -56,31 +56,31 @@ class SystemEventMonitor(private val ctx: Context) {
         when (intent.action) {
             Intent.ACTION_POWER_CONNECTED -> if (s.charging) {
                 val lvl = batteryLevel()
-                show(Kind.CHARGING, "Cargando", "$lvl%", key = "on")
+                show(Kind.CHARGING, "Charging", "$lvl%", key = "on")
             }
             Intent.ACTION_POWER_DISCONNECTED -> if (s.charging) {
-                show(Kind.CHARGING, "Desconectado", "${batteryLevel()}%", key = "off")
+                show(Kind.CHARGING, "Disconnected", "${batteryLevel()}%", key = "off")
             }
-            Intent.ACTION_BATTERY_LOW -> if (s.lowBattery) show(Kind.BATTERY, "Batería baja", "${batteryLevel()}%")
+            Intent.ACTION_BATTERY_LOW -> if (s.lowBattery) show(Kind.BATTERY, "Low battery", "${batteryLevel()}%")
             AudioManager.RINGER_MODE_CHANGED_ACTION -> if (s.ringer) {
                 when (intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, -1)) {
-                    AudioManager.RINGER_MODE_SILENT -> show(Kind.RINGER, "Silencio", "Activado", "silent")
-                    AudioManager.RINGER_MODE_VIBRATE -> show(Kind.RINGER, "Vibración", "Activada", "vibrate")
-                    AudioManager.RINGER_MODE_NORMAL -> show(Kind.RINGER, "Sonido", "Activado", "normal")
+                    AudioManager.RINGER_MODE_SILENT -> show(Kind.RINGER, "Silent", "On", "silent")
+                    AudioManager.RINGER_MODE_VIBRATE -> show(Kind.RINGER, "Vibrate", "On", "vibrate")
+                    AudioManager.RINGER_MODE_NORMAL -> show(Kind.RINGER, "Sound", "On", "normal")
                 }
             }
             Intent.ACTION_AIRPLANE_MODE_CHANGED -> if (s.airplane) {
                 val on = intent.getBooleanExtra("state", false)
-                show(Kind.AIRPLANE, "Modo avión", if (on) "Activado" else "Desactivado", if (on) "on" else "off")
+                show(Kind.AIRPLANE, "Airplane mode", if (on) "On" else "Off", if (on) "on" else "off")
             }
             AudioManager.ACTION_HEADSET_PLUG -> if (s.headphones) {
                 val on = intent.getIntExtra("state", 0) == 1
-                show(Kind.HEADPHONES, "Auriculares", if (on) "Conectados" else "Desconectados", if (on) "on" else "off")
+                show(Kind.HEADPHONES, "Headphones", if (on) "Connected" else "Disconnected", if (on) "on" else "off")
             }
             BluetoothDevice.ACTION_ACL_CONNECTED, BluetoothDevice.ACTION_ACL_DISCONNECTED -> if (s.bluetooth) {
                 val on = intent.action == BluetoothDevice.ACTION_ACL_CONNECTED
                 val name = deviceName(intent) ?: "Bluetooth"
-                show(Kind.BLUETOOTH, name, if (on) "Conectado" else "Desconectado", if (on) "on" else "off")
+                show(Kind.BLUETOOTH, name, if (on) "Connected" else "Disconnected", if (on) "on" else "off")
             }
         }
     }

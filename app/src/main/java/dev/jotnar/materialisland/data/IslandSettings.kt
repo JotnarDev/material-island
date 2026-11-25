@@ -11,48 +11,48 @@ import kotlinx.serialization.json.Json
 /** Fondo de la isla. */
 @Serializable
 enum class BackgroundMode(val label: String) {
-    BLACK("Negro AMOLED"),
+    BLACK("AMOLED black"),
     MATERIAL("Material You"),
-    CUSTOM("Personalizado"),
+    CUSTOM("Custom"),
 }
 
 /** Color de acento (iconos, barras, progreso). */
 @Serializable
 enum class AccentMode(val label: String) {
     MATERIAL("Material You"),
-    APP("Color de la app"),
-    CUSTOM("Personalizado"),
+    APP("App color"),
+    CUSTOM("Custom"),
 }
 
 /** Gestos sobre la isla cuando muestra algo. */
 @Serializable
 enum class GestureAction(val label: String) {
-    NONE("Nada"),
-    TOGGLE_EXPAND("Expandir / contraer"),
-    OPEN_APP("Abrir la app"),
-    PLAY_PAUSE("Reproducir / pausar"),
-    NEXT_ACTIVITY("Cambiar de actividad"),
-    DISMISS("Descartar"),
+    NONE("Nothing"),
+    TOGGLE_EXPAND("Expand / collapse"),
+    OPEN_APP("Open app"),
+    PLAY_PAUSE("Play / pause"),
+    NEXT_ACTIVITY("Switch activity"),
+    DISMISS("Dismiss"),
 }
 
 /** Gestos sobre la cámara cuando la isla está en reposo. */
 @Serializable
 enum class IdleAction(val label: String) {
-    NONE("Nada"),
-    FLASHLIGHT("Linterna"),
-    SCREENSHOT("Captura de pantalla"),
-    NOTIFICATIONS("Notificaciones"),
-    QUICK_SETTINGS("Ajustes rápidos"),
-    LOCK_SCREEN("Bloquear pantalla"),
-    OPEN_ISLAND_APP("Abrir Material Island"),
+    NONE("Nothing"),
+    FLASHLIGHT("Flashlight"),
+    SCREENSHOT("Screenshot"),
+    NOTIFICATIONS("Notifications"),
+    QUICK_SETTINGS("Quick settings"),
+    LOCK_SCREEN("Lock screen"),
+    OPEN_ISLAND_APP("Open Material Island"),
 }
 
 /** Qué notificaciones aparecen como aviso. */
 @Serializable
 enum class NotificationMode(val label: String) {
-    ALL("Todas"),
-    MESSAGES("Solo mensajes"),
-    NONE("Ninguna"),
+    ALL("All"),
+    MESSAGES("Messages only"),
+    NONE("None"),
 }
 
 /**
@@ -125,6 +125,9 @@ data class IslandSettings(
     val respectDnd: Boolean = true,
     /** Apaga las notificaciones emergentes del sistema mientras la isla está activa. */
     val islandIsPrimary: Boolean = false,
+    /** Burbujas de mensajes sin leer a la izquierda de la isla. */
+    val unreadBubbles: Boolean = true,
+    val maxBubbles: Int = 3,
     val showSecondary: Boolean = true,
     val haptics: Boolean = true,
     /** Muestra el contorno de la isla en reposo para calibrar con la cámara. */

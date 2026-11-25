@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -132,6 +133,8 @@ data class IslandUi(
     val hidden: Boolean,
     val replyingId: String? = null,
     val copiedId: String? = null,
+    /** Mensajes sin leer, el más reciente primero. */
+    val unread: List<IslandItem> = emptyList(),
 )
 
 interface IslandCallbacks {
@@ -147,6 +150,9 @@ interface IslandCallbacks {
     fun onSecondaryTap() {}
     fun onBounds(rects: List<android.graphics.Rect>) {}
     fun onPressChanged(pressed: Boolean) {}
+    fun onBubbleTap(item: IslandItem) {}
+    fun onBubbleLongPress(item: IslandItem) {}
+    fun onBubbleOverflow() {}
 }
 
 fun resolveMode(ui: IslandUi): Mode {
@@ -302,6 +308,8 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 
     var mainRect by remember { mutableStateOf(Rect.Zero) }
     var satRect by remember { mutableStateOf<Rect?>(null) }
+    var bubblesRect by remember { mutableStateOf<Rect?>(null) }
+    val showBubbles = ui.unread.isNotEmpty() && (mode == Mode.REST || mode == Mode.COMPACT)
 
     val secondary = ui.state.secondary
     val showSat = s.showSecondary && mode == Mode.COMPACT && secondary != null
@@ -310,7 +318,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 
     // Zona táctil: solo la isla (y la burbuja). Fuera de ella los toques pasan a la app de debajo.
     val idleTouchable = s.idleTap != IdleAction.NONE || s.idleLongPress != IdleAction.NONE || s.calibration
-    LaunchedEffect(mainRect, satRect, mode, showSat, idleTouchable) {
+    LaunchedEffect(mainRect, satRect, bubblesRect, mode, showSat, showBubbles, idleTouchable) {
         val m = with(density) { 6.dp.toPx() }
         val rects = buildList {
             val touchMain = when (mode) {
@@ -320,6 +328,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
             }
             if (touchMain && mainRect != Rect.Zero) add(mainRect.inflate(m).toAndroid())
             if (showSat) satRect?.let { add(it.inflate(m).toAndroid()) }
+            if (showBubbles) bubblesRect?.let { add(it.inflate(m).toAndroid()) }
         }
         cb.onBounds(rects)
     }
@@ -417,18 +426,34 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 }
                 if (!showSat) LaunchedEffect(Unit) { satRect = null }
             },
+            {
+                AnimatedVisibility(
+                    visible = showBubbles,
+                    enter = scaleIn(spring(0.55f, 450f), transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)) + fadeIn(),
+                    exit = scaleOut(tween(150)) + fadeOut(tween(150)),
+                ) {
+                    UnreadBubbles(
+                        ui.unread, s.maxBubbles.coerceAtLeast(1), pillH - 12.dp, cb,
+                        Modifier.onGloballyPositioned { bubblesRect = it.boundsInWindow() },
+                    )
+                }
+            },
         ),
         modifier = modifier.fillMaxSize(),
-    ) { (mainM, satM), constraints ->
+    ) { (mainM, satM, bubM), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val main = mainM.firstOrNull()?.measure(loose)
         val sat = satM.firstOrNull()?.measure(loose)
+        val bub = bubM.firstOrNull()?.measure(loose)
         layout(constraints.maxWidth, constraints.maxHeight) {
             val topPx = top.roundToPx()
             if (main != null) {
                 val x = (cx - main.width / 2).coerceIn(0, (constraints.maxWidth - main.width).coerceAtLeast(0))
                 main.place(x, topPx)
                 sat?.place(x + main.width + gapPx, topPx + (pillH.roundToPx() - sat.height) / 2)
+                // Burbujas a la izquierda, centradas con la cámara.
+                val centerY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
+                bub?.place(x - gapPx - bub.width, centerY - bub.height / 2)
             }
         }
     }
@@ -437,6 +462,74 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 private data class Frame(val mode: Mode, val item: IslandItem?)
 
 private fun Rect.toAndroid() = android.graphics.Rect(left.roundToInt(), top.roundToInt(), right.roundToInt(), bottom.roundToInt())
+
+// ── Burbujas de mensajes sin leer ─────────────────────────────────────
+
+/**
+ * Avatares apilados a la izquierda de la isla (el más reciente pegado a la isla y por encima).
+ * Si hay más de [max], el primero de la izquierda es un "+N" que abre el panel.
+ */
+@Composable
+private fun UnreadBubbles(items: List<IslandItem>, max: Int, size: Dp, cb: IslandCallbacks, modifier: Modifier) {
+    val shown = if (items.size > max) items.take(max - 1) else items.take(max)
+    val extra = items.size - shown.size
+    val step = size * 0.68f
+    // Orden de dibujo de izquierda a derecha: "+N", los más viejos, ..., el más reciente.
+    val slots: List<IslandItem?> = (if (extra > 0) listOf<IslandItem?>(null) else emptyList()) + shown.reversed()
+    Box(modifier.width(size + step * (slots.size - 1)).height(size)) {
+        slots.forEachIndexed { i, item ->
+            androidx.compose.runtime.key(item?.id ?: "more") {
+                val scale = remember { androidx.compose.animation.core.Animatable(0.3f) }
+                LaunchedEffect(Unit) { scale.animateTo(1f, spring(0.5f, 420f)) }
+                Box(
+                    Modifier
+                        .padding(start = step * i)
+                        .size(size)
+                        .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+                        .pointerInput(item?.id) {
+                            detectTapGestures(
+                                onTap = { if (item != null) cb.onBubbleTap(item) else cb.onBubbleOverflow() },
+                                onLongPress = { if (item != null) cb.onBubbleLongPress(item) else cb.onBubbleOverflow() },
+                            )
+                        },
+                ) {
+                    if (item == null) {
+                        Box(
+                            Modifier.fillMaxSize().clip(CircleShape).background(Color.Black).padding(2.dp)
+                                .clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "+$extra", color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            )
+                        }
+                    } else {
+                        val face = item.image ?: item.appIcon
+                        Box(Modifier.fillMaxSize().clip(CircleShape).background(Color.Black).padding(2.dp).clip(CircleShape)) {
+                            if (face != null) Image(face.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            else Box(
+                                Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(item.title.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                        // Insignia con el ícono de la app (solo si la cara es un avatar).
+                        val badge = item.appIcon
+                        if (item.image != null && badge != null) {
+                            Image(
+                                badge.asImageBitmap(), null,
+                                Modifier.align(Alignment.BottomEnd).offset(x = 2.dp, y = 2.dp).size(size * 0.42f)
+                                    .clip(CircleShape).background(Color.Black).padding(1.5.dp).clip(CircleShape),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 // ── Píldora compacta ─────────────────────────────────────────────────
 
@@ -491,7 +584,7 @@ private fun CompactRight(item: IslandItem, p: IslandPalette, size: Dp) {
 
     when (item.kind) {
         Kind.MEDIA -> Visualizer(item.media?.playing == true, p.accent)
-        Kind.CALL -> if (item.incoming) T("Entrante", SoftGreen) else T(chronoText(item, rememberNow()) ?: "En llamada", SoftGreen)
+        Kind.CALL -> if (item.incoming) T("Incoming", SoftGreen) else T(chronoText(item, rememberNow()) ?: "On call", SoftGreen)
         Kind.RECORDING -> T(chronoText(item, rememberNow()) ?: "REC", SoftRed)
         Kind.TIMER -> T(chronoText(item, rememberNow()) ?: item.compactText ?: item.title)
         Kind.NAVIGATION -> T(item.compactText ?: item.title)
@@ -529,7 +622,7 @@ private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                if (copied) "Copiado" else item.title, style = MaterialTheme.typography.labelLarge,
+                if (copied) "Copied" else item.title, style = MaterialTheme.typography.labelLarge,
                 color = p.content, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
@@ -591,10 +684,10 @@ private fun CardHeader(item: IslandItem, p: IslandPalette, d: Dims) {
             when (item.kind) {
                 Kind.MEDIA -> Visualizer(item.media?.playing == true, p.accent, height = 14.dp)
                 Kind.CALL -> Text(
-                    if (item.incoming) "Entrante" else chronoText(item, rememberNow()) ?: "", style = style, color = SoftGreen,
+                    if (item.incoming) "Incoming" else chronoText(item, rememberNow()) ?: "", style = style, color = SoftGreen,
                 )
                 Kind.PROGRESS, Kind.LIVE -> if (item.progress >= 0f) Text("${(item.progress * 100).roundToInt()}%", style = style, color = p.accent)
-                Kind.NOTIFICATION -> Text("ahora", style = style, color = p.variant)
+                Kind.NOTIFICATION -> Text("now", style = style, color = p.variant)
                 else -> Unit
             }
         }
@@ -657,7 +750,7 @@ private fun MediaBody(item: IslandItem, p: IslandPalette, s: IslandSettings, cb:
     Spacer(Modifier.height(6.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { cb.onMedia(item, MediaCmd.PREV) }, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipPrevious, "Anterior", tint = p.content, modifier = Modifier.size(32.dp))
+            Icon(Icons.Rounded.SkipPrevious, "Previous", tint = p.content, modifier = Modifier.size(32.dp))
         }
         // Botón play/pausa que cambia de forma: píldora en pausa, cuadrado redondeado sonando (como el Pixel).
         val radius by animateDpAsState(if (m.playing) 20.dp else 32.dp, spring(0.5f, 400f), label = "pp")
@@ -671,12 +764,12 @@ private fun MediaBody(item: IslandItem, p: IslandPalette, s: IslandSettings, cb:
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                if (m.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Reproducir/pausar",
+                if (m.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play/pause",
                 tint = Color.Black.copy(alpha = 0.85f), modifier = Modifier.size(32.dp),
             )
         }
         IconButton(onClick = { cb.onMedia(item, MediaCmd.NEXT) }, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipNext, "Siguiente", tint = p.content, modifier = Modifier.size(32.dp))
+            Icon(Icons.Rounded.SkipNext, "Next", tint = p.content, modifier = Modifier.size(32.dp))
         }
     }
 }
@@ -857,16 +950,16 @@ private fun ReplyField(p: IslandPalette, onSend: (String) -> Unit, onCancel: () 
             keyboardActions = KeyboardActions(onSend = { if (text.isNotBlank()) onSend(text) }),
             decorationBox = { inner ->
                 Box {
-                    if (text.isEmpty()) Text("Escribe una respuesta…", color = p.variant, style = MaterialTheme.typography.bodyLarge)
+                    if (text.isEmpty()) Text("Write a reply…", color = p.variant, style = MaterialTheme.typography.bodyLarge)
                     inner()
                 }
             },
         )
-        IconButton(onClick = onCancel) { Icon(Icons.Rounded.Close, "Cancelar", tint = p.variant) }
+        IconButton(onClick = onCancel) { Icon(Icons.Rounded.Close, "Cancel", tint = p.variant) }
         FilledIconButton(
             onClick = { if (text.isNotBlank()) onSend(text) },
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = p.accent, contentColor = Color.Black),
-        ) { Icon(Icons.AutoMirrored.Rounded.Send, "Enviar") }
+        ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send") }
     }
 }
 

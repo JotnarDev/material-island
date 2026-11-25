@@ -275,15 +275,15 @@ fun kindIcon(item: IslandItem): ImageVector = when (item.kind) {
 }
 
 fun kindLabel(kind: Kind): String = when (kind) {
-    Kind.CALL -> "Llamada"
-    Kind.NAVIGATION -> "Navegación"
-    Kind.TIMER -> "Temporizador"
-    Kind.RECORDING -> "Grabación"
-    Kind.LIVE -> "En vivo"
-    Kind.MEDIA -> "Reproduciendo"
-    Kind.PROGRESS -> "Progreso"
-    Kind.NOTIFICATION -> "Notificación"
-    Kind.OTP -> "Código"
-    Kind.PAYMENT -> "Pago"
-    else -> "Sistema"
+    Kind.CALL -> "Call"
+    Kind.NAVIGATION -> "Navigation"
+    Kind.TIMER -> "Timer"
+    Kind.RECORDING -> "Recording"
+    Kind.LIVE -> "Live"
+    Kind.MEDIA -> "Now playing"
+    Kind.PROGRESS -> "Progress"
+    Kind.NOTIFICATION -> "Notification"
+    Kind.OTP -> "Code"
+    Kind.PAYMENT -> "Payment"
+    else -> "System"
 }

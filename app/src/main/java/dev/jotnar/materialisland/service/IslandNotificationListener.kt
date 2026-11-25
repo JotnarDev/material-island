@@ -32,6 +32,7 @@ class IslandNotificationListener : NotificationListenerService() {
         media?.stop()
         media = null
         IslandStore.clearWhere { it.id.startsWith("n:") }
+        IslandStore.clearUnread()
         super.onListenerDisconnected()
     }
 
@@ -39,11 +40,14 @@ class IslandNotificationListener : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         lastHash.remove(sbn.key)
+        IslandStore.removeUnread("n:" + sbn.key)
         IslandStore.remove("n:" + sbn.key)
     }
 
     private fun handle(sbn: StatusBarNotification, initial: Boolean) {
         val s = SettingsStore.current
+        NotificationParser.unreadMessage(this, sbn, s)?.let { IslandStore.setUnread(it) }
+            ?: IslandStore.removeUnread("n:" + sbn.key)
         val canPeek = !initial && passesFilters(sbn, s.respectDnd)
         when (val r = NotificationParser.parse(this, sbn, s, canPeek)) {
             is NotificationParser.Result.Live -> {
@@ -72,6 +76,8 @@ class IslandNotificationListener : NotificationListenerService() {
         if (respectDnd && !ranking.matchesInterruptionFilter()) return false
         return true
     }
+
+    fun dismiss(key: String) = runCatching { cancelNotification(key) }
 
     companion object {
         val connected = MutableStateFlow(false)

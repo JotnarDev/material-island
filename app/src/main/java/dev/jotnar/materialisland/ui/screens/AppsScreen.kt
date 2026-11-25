@@ -67,11 +67,11 @@ fun AppsScreen(onBack: () -> Unit) {
         }
     }
 
-    SettingsScaffold("Apps", onBack, "Desactiva una app para que nunca aparezca en la isla") {
+    SettingsScaffold("Apps", onBack, "Turn an app off so it never shows up in the island") {
         OutlinedTextField(
             value = query, onValueChange = { query = it }, singleLine = true,
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
-            placeholder = { Text("Buscar app") },
+            placeholder = { Text("Search apps") },
             shape = RoundedCornerShape(28.dp),
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         )

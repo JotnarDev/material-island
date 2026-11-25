@@ -93,7 +93,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
     ) { st, exp, hide, reply, copied ->
         val primary = st.primary
         IslandUi(st, expanded = exp != null && exp == primary?.id, hidden = hide, replyingId = reply, copiedId = copied)
-    }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
+    }.combine(IslandStore.unread) { u, unread -> u.copy(unread = unread) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
 
     private var collapseJob: Job? = null
 
@@ -257,7 +257,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
                 }
             }
             add.invoke(v.viewTreeObserver, proxy)
-        }.onFailure { Log.w(TAG, "Zona táctil parcial no disponible", it) }
+        }.onFailure { Log.w(TAG, "Partial touch region unavailable", it) }
     }
 
     // ── Expandir / contraer ─────────────────────────────────────────────
@@ -442,6 +442,22 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         Haptics.tick()
         scheduleCollapse()
         m.controller?.transportControls?.seekTo((fraction * m.durationMs).toLong())
+    }
+
+    override fun onBubbleTap(item: IslandItem) {
+        Haptics.tick()
+        // Abre el mensaje en la isla para leerlo y responder sin salir de lo que estás haciendo.
+        IslandStore.show(item.copy(durationMs = SettingsStore.current.peekSeconds * 1000L))
+        IslandStore.hold(true)
+        expandedId.value = item.id
+        scheduleCollapse()
+    }
+
+    override fun onBubbleLongPress(item: IslandItem) = openApp(item)
+
+    override fun onBubbleOverflow() {
+        Haptics.tick()
+        service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
     }
 
     override fun onSecondaryTap() {

@@ -122,7 +122,7 @@ object NotificationParser {
             return Result.Live(
                 IslandItem(
                     id = id, kind = Kind.CALL, pkg = pkg, appLabel = label, appIcon = icon,
-                    title = caller, text = if (incoming) "Llamada entrante · $label" else (text ?: label),
+                    title = caller, text = if (incoming) "Incoming call · $label" else (text ?: label),
                     image = large, incoming = incoming,
                     chronoBase = if (!incoming && n.`when` in 1..now) n.`when` else 0L,
                     actions = callActions(ex, actions), contentIntent = n.contentIntent,
@@ -137,7 +137,7 @@ object NotificationParser {
             return Result.Live(
                 IslandItem(
                     id = id, kind = Kind.RECORDING, pkg = pkg, appLabel = label, appIcon = icon,
-                    title = if (screen) "Grabando pantalla" else (title ?: "Grabando"), text = text,
+                    title = if (screen) "Recording screen" else (title ?: "Recording"), text = text,
                     chronoBase = if (chrono && !countDown && n.`when` in 1..now) n.`when` else 0L,
                     actions = actions.take(3), contentIntent = n.contentIntent,
                     contentHash = Objects.hash(title, n.`when`),
@@ -220,10 +220,10 @@ object NotificationParser {
                 return Result.Peek(
                     IslandItem(
                         id = id, kind = Kind.OTP, pkg = pkg, appLabel = label, appIcon = icon,
-                        title = if (s.otpAutoCopy) "Código copiado" else "Código · $label",
+                        title = if (s.otpAutoCopy) "Code copied" else "Code · $label",
                         text = all, otp = code, value = code,
                         contentIntent = n.contentIntent,
-                        actions = listOf(IslandAction("Copiar", null, onClick = { copyToClipboard(ctx, code) })),
+                        actions = listOf(IslandAction("Copy", null, onClick = { copyToClipboard(ctx, code) })),
                         durationMs = maxOf(8000L, s.peekSeconds * 1000L),
                         contentHash = code.hashCode(),
                     ),
@@ -236,7 +236,7 @@ object NotificationParser {
             return Result.Peek(
                 IslandItem(
                     id = id, kind = Kind.PAYMENT, pkg = pkg, appLabel = label, appIcon = icon,
-                    title = "Pago hecho", text = all, value = AMOUNT.find(all)?.value ?: "Listo",
+                    title = "Payment done", text = all, value = AMOUNT.find(all)?.value ?: "Done",
                     contentIntent = n.contentIntent, durationMs = 3500,
                     contentHash = all.hashCode(),
                 ),
@@ -273,9 +273,44 @@ object NotificationParser {
         )
     }
 
+    /**
+     * Si la notificación es un mensaje sin leer (SMS, WhatsApp, Telegram...), lo devuelve como item
+     * para las burbujas de la izquierda. Independiente de si se mostró como aviso o no.
+     */
+    fun unreadMessage(ctx: Context, sbn: StatusBarNotification, s: IslandSettings): IslandItem? {
+        val n = sbn.notification ?: return null
+        val pkg = sbn.packageName
+        if (pkg == ctx.packageName || pkg in s.blockedApps) return null
+        if ((n.flags and (Notification.FLAG_GROUP_SUMMARY or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE)) != 0) return null
+        val ex = n.extras ?: return null
+        val style = runCatching { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n) }.getOrNull()
+        if (n.category != Notification.CATEGORY_MESSAGE && style == null) return null
+        var t = (ex.getCharSequence(Notification.EXTRA_TITLE_BIG) ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()
+        var body = (ex.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString()
+        var avatar = largeIcon(ctx, n)
+        val last = style?.messages?.lastOrNull()
+        if (style != null && last != null) {
+            val sender = last.person?.name?.toString()
+            body = last.text?.toString()
+            t = style.conversationTitle?.toString() ?: sender ?: t
+            if (style.isGroupConversation && sender != null) body = "$sender: ${last.text}"
+            if (avatar == null) runCatching { last.person?.icon?.loadDrawable(ctx)?.let { avatar = it.toBitmap(128, 128) } }
+        }
+        if (t == null && body == null) return null
+        val label = appLabel(ctx, pkg)
+        return IslandItem(
+            id = "n:" + sbn.key, kind = Kind.NOTIFICATION, pkg = pkg, appLabel = label, appIcon = appIcon(ctx, pkg),
+            title = t ?: label, text = body, image = avatar,
+            accent = if (n.color != Notification.COLOR_DEFAULT && n.color != 0) n.color or 0xFF000000.toInt() else null,
+            actions = n.actions?.map { toAction(ctx, it) }?.take(3) ?: emptyList(), contentIntent = n.contentIntent,
+            durationMs = s.peekSeconds * 1000L, contentHash = Objects.hash(t, body),
+            postedAt = sbn.postTime,
+        )
+    }
+
     fun copyToClipboard(ctx: Context, text: String) {
         val cm = ctx.getSystemService(ClipboardManager::class.java) ?: return
-        cm.setPrimaryClip(ClipData.newPlainText("Código", text))
+        cm.setPrimaryClip(ClipData.newPlainText("Code", text))
     }
 
     private fun largeIcon(ctx: Context, n: Notification): Bitmap? =
@@ -320,9 +355,9 @@ object NotificationParser {
     private fun callActions(ex: Bundle, fallback: List<IslandAction>): List<IslandAction> {
         fun pi(key: String) = runCatching { ex.getParcelable(key) as? PendingIntent }.getOrNull()
         val list = mutableListOf<IslandAction>()
-        pi("android.declineIntent")?.let { list += IslandAction("Rechazar", it, ActionStyle.NEGATIVE) }
-        pi("android.hangUpIntent")?.let { list += IslandAction("Colgar", it, ActionStyle.NEGATIVE) }
-        pi("android.answerIntent")?.let { list += IslandAction("Contestar", it, ActionStyle.POSITIVE) }
+        pi("android.declineIntent")?.let { list += IslandAction("Decline", it, ActionStyle.NEGATIVE) }
+        pi("android.hangUpIntent")?.let { list += IslandAction("Hang up", it, ActionStyle.NEGATIVE) }
+        pi("android.answerIntent")?.let { list += IslandAction("Answer", it, ActionStyle.POSITIVE) }
         return if (list.isNotEmpty()) list + fallback.filter { it.style == ActionStyle.NORMAL }.take(2) else fallback.take(3)
     }
 }

@@ -18,7 +18,7 @@ Sin permiso de internet: nada sale del teléfono.
 | Códigos (OTP) | Píldora ancha con el código; tocar = copiar | — |
 | Sistema | Carga, batería baja, Bluetooth, modo de sonido, avión, auriculares | — |
 
-Además: segunda actividad como burbuja al lado (tócala para cambiar), gestos configurables,
+Además: burbujas de mensajes sin leer a la izquierda de la isla (tocar = leer/responder en la isla, mantener = abrir la app), segunda actividad como burbuja al lado (tócala para cambiar), gestos configurables,
 gestos sobre la cámara en reposo (linterna, captura…), se oculta en horizontal / pantalla completa,
 respeta No molestar y vibra con las primitivas hápticas del Pixel.
 
@@ -74,6 +74,12 @@ adb shell dumpsys deviceidle whitelist +$P
 adb shell pm grant $P android.permission.BLUETOOTH_CONNECT
 adb shell appops set $P RECEIVE_SENSITIVE_NOTIFICATIONS allow   # códigos OTP en Android 15+
 adb shell pm grant $P android.permission.WRITE_SECURE_SETTINGS     # "La isla es la principal"
+```
+
+Ocultar los iconos de notificaciones de Android en la barra (las burbujas los reemplazan; se reinicia al reiniciar el teléfono):
+
+```bash
+adb shell cmd statusbar send-disable-flag notification-icons   # "none" para volver a mostrarlos
 ```
 
 > Ojo: `settings put … enabled_accessibility_services` reemplaza la lista. Si tienes otros

@@ -15,9 +15,9 @@ import dev.jotnar.materialisland.model.MediaInfo
 /** Actividades falsas para probar la isla sin esperar a que pasen de verdad. */
 object Demo {
     enum class Type(val label: String) {
-        MEDIA("Música"), CALL("Llamada"), TIMER("Temporizador"), NAV("Navegación"),
-        DOWNLOAD("Descarga"), MESSAGE("Mensaje"), OTP("Código"), CHARGING("Carga"),
-        BLUETOOTH("Bluetooth"), RINGER("Vibración"),
+        MEDIA("Music"), CALL("Call"), TIMER("Timer"), NAV("Navigation"),
+        DOWNLOAD("Download"), MESSAGE("Message"), OTP("Code"), CHARGING("Charging"),
+        BLUETOOTH("Bluetooth"), RINGER("Vibrate"),
     }
 
     private fun gradient(a: Int, b: Int): Bitmap {
@@ -32,7 +32,7 @@ object Demo {
     private fun mediaItem(playing: Boolean, pos: Long = 42_000L): IslandItem {
         val art = gradient(0xFFFF8A65.toInt(), 0xFF7E57C2.toInt())
         val info = MediaInfo(
-            title = "Canción de demostración", artist = "Material Island", art = art, artColor = 0xFFFF8A65.toInt(),
+            title = "Demo song", artist = "Material Island", art = art, artColor = 0xFFFF8A65.toInt(),
             durationMs = 215_000, positionMs = pos, positionUpdatedAt = SystemClock.elapsedRealtime(),
             speed = 1f, playing = playing, controller = null,
         )
@@ -55,60 +55,60 @@ object Demo {
             Type.MEDIA -> { demoPlaying = true; IslandStore.upsert(mediaItem(true)) }
             Type.CALL -> IslandStore.upsert(
                 IslandItem(
-                    id = "demo:call", kind = Kind.CALL, title = "Mamá", text = "Llamada entrante · Teléfono",
-                    appLabel = "Teléfono", incoming = true, autoExpand = true,
+                    id = "demo:call", kind = Kind.CALL, title = "Mom", text = "Incoming call · Phone",
+                    appLabel = "Phone", incoming = true, autoExpand = true,
                     actions = listOf(
-                        IslandAction("Rechazar", null, ActionStyle.NEGATIVE, onClick = { IslandStore.remove("demo:call") }),
-                        IslandAction("Contestar", null, ActionStyle.POSITIVE, onClick = { answerDemoCall() }),
+                        IslandAction("Decline", null, ActionStyle.NEGATIVE, onClick = { IslandStore.remove("demo:call") }),
+                        IslandAction("Answer", null, ActionStyle.POSITIVE, onClick = { answerDemoCall() }),
                     ),
                 ),
             )
             Type.TIMER -> IslandStore.upsert(
                 IslandItem(
-                    id = "demo:timer", kind = Kind.TIMER, title = "Temporizador", text = "Pasta",
-                    appLabel = "Reloj", chronoBase = now + 5 * 60_000, countDown = true,
-                    actions = listOf(IslandAction("Detener", null, onClick = { IslandStore.remove("demo:timer") })),
+                    id = "demo:timer", kind = Kind.TIMER, title = "Timer", text = "Pasta",
+                    appLabel = "Clock", chronoBase = now + 5 * 60_000, countDown = true,
+                    actions = listOf(IslandAction("Stop", null, onClick = { IslandStore.remove("demo:timer") })),
                 ),
             )
             Type.NAV -> IslandStore.upsert(
                 IslandItem(
-                    id = "demo:nav", kind = Kind.NAVIGATION, title = "350 m · Gira a la derecha",
-                    text = "Av. Siempre Viva · Llegada 18:42", appLabel = "Maps", compactText = "350 m",
-                    actions = listOf(IslandAction("Salir", null, onClick = { IslandStore.remove("demo:nav") })),
+                    id = "demo:nav", kind = Kind.NAVIGATION, title = "350 m · Turn right",
+                    text = "Evergreen Terrace · Arrive 6:42 PM", appLabel = "Maps", compactText = "350 m",
+                    actions = listOf(IslandAction("Exit", null, onClick = { IslandStore.remove("demo:nav") })),
                 ),
             )
             Type.DOWNLOAD -> {
                 IslandStore.upsert(
                     IslandItem(
-                        id = "demo:dl", kind = Kind.PROGRESS, title = "Descargando archivo.zip", text = "48 MB de 120 MB",
+                        id = "demo:dl", kind = Kind.PROGRESS, title = "Downloading archive.zip", text = "48 MB of 120 MB",
                         appLabel = "Chrome", progress = 0.4f,
                     ),
                 )
             }
             Type.MESSAGE -> IslandStore.show(
                 IslandItem(
-                    id = "demo:msg", kind = Kind.NOTIFICATION, title = "Sebastián",
-                    text = "¿Viste la isla nueva? Quedó brutal 🔥", appLabel = "Mensajes", durationMs = 6000,
+                    id = "demo:msg", kind = Kind.NOTIFICATION, title = "Alex",
+                    text = "Did you see the new island? It looks amazing 🔥", appLabel = "Messages", durationMs = 6000,
                     actions = listOf(
-                        IslandAction("Responder", null, onReply = { }),
-                        IslandAction("Marcar como leído", null, onClick = { IslandStore.dismissTransient("demo:msg") }),
+                        IslandAction("Reply", null, onReply = { }),
+                        IslandAction("Mark as read", null, onClick = { IslandStore.dismissTransient("demo:msg") }),
                     ),
                 ),
             )
             Type.OTP -> IslandStore.show(
                 IslandItem(
-                    id = "demo:otp", kind = Kind.OTP, title = "Código · Banco", text = "Tu código es 482913",
-                    appLabel = "Mensajes", otp = "482913", value = "482913", durationMs = 8000,
+                    id = "demo:otp", kind = Kind.OTP, title = "Code · Bank", text = "Your code is 482913",
+                    appLabel = "Messages", otp = "482913", value = "482913", durationMs = 8000,
                 ),
             )
             Type.CHARGING -> IslandStore.show(
-                IslandItem(id = "sys:CHARGING", kind = Kind.CHARGING, title = "Cargando", value = "78%", compactText = "on", durationMs = 3000),
+                IslandItem(id = "sys:CHARGING", kind = Kind.CHARGING, title = "Charging", value = "78%", compactText = "on", durationMs = 3000),
             )
             Type.BLUETOOTH -> IslandStore.show(
-                IslandItem(id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = "Pixel Buds Pro 2", value = "Conectado", compactText = "on", durationMs = 3000),
+                IslandItem(id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = "Pixel Buds Pro 2", value = "Connected", compactText = "on", durationMs = 3000),
             )
             Type.RINGER -> IslandStore.show(
-                IslandItem(id = "sys:RINGER", kind = Kind.RINGER, title = "Vibración", value = "Activada", compactText = "vibrate", durationMs = 3000),
+                IslandItem(id = "sys:RINGER", kind = Kind.RINGER, title = "Vibrate", value = "On", compactText = "vibrate", durationMs = 3000),
             )
         }
     }
@@ -116,9 +116,9 @@ object Demo {
     private fun answerDemoCall() {
         IslandStore.upsert(
             IslandItem(
-                id = "demo:call", kind = Kind.CALL, title = "Mamá", text = "En llamada", appLabel = "Teléfono",
+                id = "demo:call", kind = Kind.CALL, title = "Mom", text = "On call", appLabel = "Phone",
                 chronoBase = System.currentTimeMillis(),
-                actions = listOf(IslandAction("Colgar", null, ActionStyle.NEGATIVE, onClick = { IslandStore.remove("demo:call") })),
+                actions = listOf(IslandAction("Hang up", null, ActionStyle.NEGATIVE, onClick = { IslandStore.remove("demo:call") })),
             ),
         )
     }

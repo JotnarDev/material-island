@@ -30,11 +30,11 @@ object SystemHeadsUp {
     /** Notificación de prioridad alta: sale emergente si el sistema tiene los heads-up activos. */
     fun postTest(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
-        nm.createNotificationChannel(NotificationChannel("test", "Pruebas", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel("test", "Tests", NotificationManager.IMPORTANCE_HIGH))
         val n = Notification.Builder(ctx, "test")
             .setSmallIcon(android.R.drawable.stat_notify_chat)
-            .setContentTitle("Notificación de prueba")
-            .setContentText("Si la ves arriba en una tarjeta del sistema, los emergentes siguen activos.")
+            .setContentTitle("Test notification")
+            .setContentText("If you see it in a system pop-up card, system pop-ups are still on.")
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .build()

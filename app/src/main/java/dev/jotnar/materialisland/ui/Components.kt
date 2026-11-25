@@ -73,7 +73,7 @@ fun SettingsScaffold(
                 subtitle = subtitle?.let { { Text(it) } },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -228,7 +228,7 @@ fun <T> ChoiceRow(title: String, options: List<T>, selected: T, label: (T) -> St
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { open = false }) { Text("Cerrar") } },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
         )
     }
 }

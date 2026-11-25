@@ -157,7 +157,7 @@ private fun HomeScreen(go: (Screen) -> Unit) {
 
     SettingsScaffold(
         title = "Material Island",
-        subtitle = if (running && listening) "Activa" else "Configuración pendiente",
+        subtitle = if (running && listening) "Active" else "Setup needed",
         onBack = null,
     ) {
         IslandPreview()
@@ -166,11 +166,11 @@ private fun HomeScreen(go: (Screen) -> Unit) {
 
         val allOk = perms.notifications && perms.accessibility
         if (!allOk || !perms.battery || !perms.bluetooth) {
-            GroupTitle("Permisos")
+            GroupTitle("Permissions")
             Group(
                 {
                     PermRow(
-                        "Acceso a notificaciones", "Para mostrar música, llamadas, temporizadores y avisos",
+                        "Notification access", "To show music, calls, timers and alerts",
                         Icons.Rounded.NotificationsActive, perms.notifications,
                     ) {
                         ctx.startActivity(
@@ -183,13 +183,13 @@ private fun HomeScreen(go: (Screen) -> Unit) {
                 },
                 {
                     PermRow(
-                        "Servicio de accesibilidad", "Para dibujar la isla sobre la barra de estado",
+                        "Accessibility service", "To draw the island over the status bar",
                         Icons.Rounded.Accessibility, perms.accessibility,
                     ) { ctx.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
                 },
                 {
                     PermRow(
-                        "Batería sin restricciones", "Evita que Android cierre la isla en segundo plano",
+                        "Unrestricted battery", "Keeps Android from killing the island in the background",
                         Icons.Rounded.BatteryChargingFull, perms.battery,
                     ) {
                         ctx.startActivity(
@@ -199,30 +199,30 @@ private fun HomeScreen(go: (Screen) -> Unit) {
                 },
                 {
                     PermRow(
-                        "Dispositivos cercanos", "Opcional: nombre de tus auriculares Bluetooth al conectar",
+                        "Nearby devices", "Optional: your Bluetooth headphones' name when they connect",
                         Icons.Rounded.Bluetooth, perms.bluetooth,
                     ) { btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT) }
                 },
             )
         }
 
-        GroupTitle("Personalizar")
+        GroupTitle("Customize")
         Group(
-            { NavRow("Apariencia", "Fondo, colores, carátula", Icons.Rounded.Palette) { go(Screen.APPEARANCE) } },
-            { NavRow("Tamaño y posición", "Calibrar con la cámara", Icons.Rounded.CenterFocusStrong) { go(Screen.SIZE) } },
-            { NavRow("Animación", "Rebote y velocidad de los muelles", Icons.Rounded.Animation) { go(Screen.ANIMATION) } },
+            { NavRow("Appearance", "Background, colors, album art", Icons.Rounded.Palette) { go(Screen.APPEARANCE) } },
+            { NavRow("Size & position", "Calibrate around the camera", Icons.Rounded.CenterFocusStrong) { go(Screen.SIZE) } },
+            { NavRow("Animation", "Spring bounce and speed", Icons.Rounded.Animation) { go(Screen.ANIMATION) } },
         )
         Spacer(Modifier.height(12.dp))
         Group(
-            { NavRow("Actividades", "Qué aparece en la isla", Icons.Rounded.Dashboard) { go(Screen.ACTIVITIES) } },
-            { NavRow("Gestos", "Tocar, mantener, deslizar", Icons.Rounded.TouchApp) { go(Screen.GESTURES) } },
-            { NavRow("Comportamiento", "Ocultar, auto-contraer, vibración", Icons.Rounded.Tune) { go(Screen.BEHAVIOR) } },
-            { NavRow("Apps", "Elige qué apps pueden usar la isla", Icons.Rounded.Apps) { go(Screen.APPS) } },
+            { NavRow("Activities", "What shows up in the island", Icons.Rounded.Dashboard) { go(Screen.ACTIVITIES) } },
+            { NavRow("Gestures", "Tap, hold, swipe", Icons.Rounded.TouchApp) { go(Screen.GESTURES) } },
+            { NavRow("Behavior", "Hiding, auto-collapse, haptics", Icons.Rounded.Tune) { go(Screen.BEHAVIOR) } },
+            { NavRow("Apps", "Choose which apps can use the island", Icons.Rounded.Apps) { go(Screen.APPS) } },
         )
         Spacer(Modifier.height(12.dp))
         Group(
-            { NavRow("Copia de seguridad", "Exportar o importar tu configuración", Icons.Rounded.SettingsBackupRestore) { go(Screen.BACKUP) } },
-            { NavRow("Acerca de", "Créditos y privacidad", Icons.Rounded.Info) { go(Screen.ABOUT) } },
+            { NavRow("Backup", "Export or import your settings", Icons.Rounded.SettingsBackupRestore) { go(Screen.BACKUP) } },
+            { NavRow("About", "Credits and privacy", Icons.Rounded.Info) { go(Screen.ABOUT) } },
         )
     }
 }
@@ -247,7 +247,7 @@ private fun PermRow(title: String, subtitle: String, icon: androidx.compose.ui.g
         }
         if (!ok) {
             Spacer(Modifier.width(8.dp))
-            Button(onClick = onClick) { Text("Activar") }
+            Button(onClick = onClick) { Text("Turn on") }
         }
     }
 }
@@ -259,6 +259,7 @@ private fun PermRow(title: String, subtitle: String, icon: androidx.compose.ui.g
 fun IslandPreview(height: androidx.compose.ui.unit.Dp = 250.dp) {
     val ctx = LocalContext.current
     val state by IslandStore.state.collectAsStateWithLifecycle()
+    val unread by IslandStore.unread.collectAsStateWithLifecycle()
     val settings by SettingsStore.flow.collectAsStateWithLifecycle()
     var expandedId by remember { mutableStateOf<String?>(null) }
     val realGeo = remember { computeIslandGeometry(ctx) }
@@ -275,11 +276,11 @@ fun IslandPreview(height: androidx.compose.ui.unit.Dp = 250.dp) {
                 .size(geo.holeDiameterDp.dp).clip(RoundedCornerShape(50)).background(Color.Black),
         )
         Text(
-            "Vista previa", style = MaterialTheme.typography.labelLarge, color = scheme.onPrimaryContainer.copy(alpha = 0.6f),
+            "Preview", style = MaterialTheme.typography.labelLarge, color = scheme.onPrimaryContainer.copy(alpha = 0.6f),
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp),
         )
         val primary = state.primary
-        val ui = IslandUi(state, expanded = expandedId != null && expandedId == primary?.id, hidden = false)
+        val ui = IslandUi(state, expanded = expandedId != null && expandedId == primary?.id, hidden = false, unread = unread)
         IslandView(
             ui, geo, settings.copy(offsetXDp = 0f, offsetYDp = 0f, calibration = false),
             object : IslandCallbacks {
@@ -314,9 +315,9 @@ fun IslandPreview(height: androidx.compose.ui.unit.Dp = 250.dp) {
 private fun DemoChips() {
     Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceBright) {
         Column(Modifier.padding(16.dp)) {
-            Text("Probar la isla", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text("Try the island", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
             Text(
-                "Lanza actividades de prueba: salen aquí y en la isla real. Toca la isla para expandirla.",
+                "Launch test activities: they show up here and on the real island. Tap the island to expand it.",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(12.dp))
@@ -325,7 +326,7 @@ private fun DemoChips() {
                     FilledTonalButton(onClick = { Demo.run(t) }) { Text(t.label) }
                 }
                 OutlinedButton(onClick = { Demo.clear() }) {
-                    Icon(Icons.Rounded.ClearAll, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Limpiar")
+                    Icon(Icons.Rounded.ClearAll, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Clear")
                 }
             }
         }
