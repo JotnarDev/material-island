@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Material Island</string>
+    <string name="accessibility_label">Material Island</string>
+    <string name="accessibility_description">Dibuja la isla dinámica alrededor de la cámara. Solo detecta qué app está en primer plano (para ocultar la música si su app está abierta). No lee el contenido de la pantalla ni envía nada a internet: la app no tiene permiso de internet.</string>
+    <string name="notification_label">Material Island</string>
+</resources>

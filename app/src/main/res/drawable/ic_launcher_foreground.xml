@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Isla -->
+    <path android:fillColor="#0B0B0F" android:pathData="M37,42h34a12,12 0 0 1 0,24h-34a12,12 0 0 1 0,-24z" />
+    <!-- Actividad (izquierda) -->
+    <path android:fillColor="#A8C7FA" android:pathData="M38,54m-7,0a7,7 0 1 1 14,0a7,7 0 1 1 -14,0" />
+    <!-- Cámara -->
+    <path android:fillColor="#26272E" android:pathData="M54,54m-5.5,0a5.5,5.5 0 1 1 11,0a5.5,5.5 0 1 1 -11,0" />
+    <path android:fillColor="#3E4A66" android:pathData="M54,54m-2.4,0a2.4,2.4 0 1 1 4.8,0a2.4,2.4 0 1 1 -4.8,0" />
+    <!-- Ecualizador (derecha) -->
+    <path android:fillColor="#A8C7FA" android:pathData="M65,51.5a1.5,1.5 0 0 1 3,0v5a1.5,1.5 0 0 1 -3,0z" />
+    <path android:fillColor="#A8C7FA" android:pathData="M70,48.5a1.5,1.5 0 0 1 3,0v11a1.5,1.5 0 0 1 -3,0z" />
+    <path android:fillColor="#A8C7FA" android:pathData="M75,50.5a1.5,1.5 0 0 1 3,0v7a1.5,1.5 0 0 1 -3,0z" />
+</vector>
