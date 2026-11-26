@@ -1021,21 +1021,41 @@ private fun MediaFull(item: IslandItem, p: IslandPalette, d: Dims, s: IslandSett
             else Box(modifier.background(fallback))
         }
         ArtLayer(Modifier.matchParentSize())
-        // Cristal: la misma carátula desenfocada, recortada a la zona del panel (borde nítido arriba).
-        ArtLayer(
-            Modifier.matchParentSize()
-                .drawWithContent {
-                    clipRect(top = size.height - panelH) { this@drawWithContent.drawContent() }
-                }
-                .blur(28.dp, BlurredEdgeTreatment.Rectangle),
+        // Desenfoque progresivo: varias copias de la carátula, cada una más desenfocada y visible
+        // más abajo, que se funden con un degradado. Arriba nítida → abajo desenfoque completo.
+        val fadeLen = 72.dp
+        listOf(6.dp to 0f, 14.dp to 0.33f, 30.dp to 0.66f).forEach { (radius, stage) ->
+            ArtLayer(
+                Modifier.matchParentSize()
+                    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        val top = size.height - panelH - fadeLen.toPx()
+                        val start = top + (size.height - top) * stage * 0.6f
+                        val end = start + fadeLen.toPx()
+                        drawRect(
+                            Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black, startY = start, endY = end),
+                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                        )
+                    }
+                    .blur(radius, BlurredEdgeTreatment.Rectangle),
+            )
+        }
+        // Velo negro en degradado: transparente arriba, negro abajo, para que el texto se lea.
+        Box(
+            Modifier.matchParentSize().drawBehind {
+                val top = size.height - panelH - fadeLen.toPx()
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent, 0.45f to Color.Black.copy(alpha = 0.45f), 1f to Color.Black.copy(alpha = 0.85f),
+                        startY = top, endY = size.height,
+                    ),
+                )
+            },
         )
         Box(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .onSizeChanged { panelH = it.height }
-                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.18f), Color.Black.copy(alpha = 0.42f))))
-                .drawBehind {
-                    drawLine(Color.White.copy(alpha = 0.14f), Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx())
-                }
                 .padding(start = Sp.edge + 4.dp, end = Sp.edge + 4.dp, top = Sp.edge, bottom = Sp.edge + 4.dp),
         ) {
             Column {
