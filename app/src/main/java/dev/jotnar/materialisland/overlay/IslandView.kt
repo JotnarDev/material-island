@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.FastOutSlowInEasing
 import kotlinx.coroutines.launch
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.VectorConverter
@@ -297,27 +298,49 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
         (if (resting) holeTop - dims.restD / 2 else holeTop - pillH / 2) + s.offsetYDp.dp, dpSpec, label = "top",
     )
     val dropAnim = remember { Animatable(if (lowered) dropTop else restTop, Dp.VectorConverter) }
+    // Burbujas de mensajes en el estilo gota: 0 = en su sitio, 1 = guardadas dentro de la cámara.
+    // Se guardan antes de que la gota se mueva y vuelven a salir cuando la animación termina.
+    val bubblesIn = remember { Animatable(0f) }
+    val hasUnread = ui.unread.isNotEmpty()
+    suspend fun stowBubbles() {
+        if (!hasUnread) { bubblesIn.snapTo(1f); return }
+        val visible = mode == Mode.REST || mode == Mode.COMPACT
+        if (visible) bubblesIn.animateTo(1f, tween((200 / s.speed).toInt(), easing = FastOutSlowInEasing))
+        else bubblesIn.snapTo(1f)
+    }
+    suspend fun releaseBubbles() = bubblesIn.animateTo(0f, spring(dampingRatio = 0.55f, stiffness = 420f * s.speed))
     LaunchedEffect(targetMode, drop, restTop, dropTop) {
-        if (!drop) { mode = targetMode; lowered = false; return@LaunchedEffect }
+        if (!drop) { mode = targetMode; lowered = false; bubblesIn.snapTo(0f); return@LaunchedEffect }
         val wantDown = !targetMode.isResting()
         when {
             wantDown && !lowered -> {
+                // La gota empieza a estirarse cuando las burbujas ya casi están dentro.
+                val stow = launch { stowBubbles() }
+                delay((130 / s.speed).toLong())
                 lowered = true; mode = Mode.REST
                 // 1) se estira despacio con el cuello  2) se suelta y cae con rebote  3) se abre
                 dropAnim.animateTo(breakTop, tween((240 / s.speed).toInt(), easing = CubicBezierEasing(0.55f, 0f, 0.85f, 0.55f)))
                 launch { dropAnim.animateTo(dropTop, spring(dampingRatio = 0.42f, stiffness = stiff * 1.1f)) }
                 delay((90 / s.speed).toLong())
                 mode = targetMode
+                stow.join()
+                delay((320 / s.speed).toLong())                                    // que termine de abrirse
+                releaseBubbles()
             }
             !wantDown && lowered -> {
+                stowBubbles()
                 mode = Mode.REST
                 delay((220 / s.speed).toLong())                                    // se encoge a gota
-                dropAnim.animateTo(restTop, spring(dampingRatio = 0.62f, stiffness = stiff * 0.8f)) // sube
+                // Sube; las burbujas salen en cuanto la gota se reabsorbe, sin esperar a que el resorte se asiente.
+                launch { dropAnim.animateTo(restTop, spring(dampingRatio = 0.62f, stiffness = stiff * 0.8f)) }
+                delay((300 / s.speed).toLong())
                 lowered = false; mode = targetMode
+                releaseBubbles()
             }
             else -> {
                 mode = targetMode
                 if (!dropAnim.isRunning) dropAnim.snapTo(if (lowered) dropTop else restTop)
+                if (bubblesIn.value != 0f) releaseBubbles()
             }
         }
     }
@@ -357,6 +380,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     var satRect by remember { mutableStateOf<Rect?>(null) }
     var bubblesRect by remember { mutableStateOf<Rect?>(null) }
     val showBubbles = ui.unread.isNotEmpty() && (mode == Mode.REST || mode == Mode.COMPACT)
+    val bubblesTouchable = showBubbles && bubblesIn.value == 0f
 
     val secondary = ui.state.secondary
     val showSat = s.showSecondary && mode == Mode.COMPACT && secondary != null
@@ -365,7 +389,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 
     // Zona táctil: solo la isla (y la burbuja). Fuera de ella los toques pasan a la app de debajo.
     val idleTouchable = s.idleTap != IdleAction.NONE || s.idleLongPress != IdleAction.NONE || s.calibration
-    LaunchedEffect(mainRect, satRect, bubblesRect, mode, showSat, showBubbles, idleTouchable) {
+    LaunchedEffect(mainRect, satRect, bubblesRect, mode, showSat, bubblesTouchable, idleTouchable) {
         val m = with(density) { 6.dp.toPx() }
         val rects = buildList {
             val touchMain = when (mode) {
@@ -375,7 +399,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
             }
             if (touchMain && mainRect != Rect.Zero) add(mainRect.inflate(m).toAndroid())
             if (showSat) satRect?.let { add(it.inflate(m).toAndroid()) }
-            if (showBubbles) bubblesRect?.let { add(it.inflate(m).toAndroid()) }
+            if (bubblesTouchable) bubblesRect?.let { add(it.inflate(m).toAndroid()) }
         }
         cb.onBounds(rects)
     }
@@ -481,7 +505,15 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 ) {
                     UnreadBubbles(
                         ui.unread, s.maxBubbles.coerceAtLeast(1), pillH - 12.dp, cb,
-                        Modifier.onGloballyPositioned { bubblesRect = it.boundsInWindow() },
+                        Modifier
+                            .graphicsLayer {
+                                // Se encogen hacia su borde derecho (el lado de la cámara) al guardarse.
+                                val k = bubblesIn.value
+                                scaleX = 1f - 0.8f * k; scaleY = 1f - 0.8f * k
+                                this.alpha = (1f - k * k).coerceIn(0f, 1f)
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)
+                            }
+                            .onGloballyPositioned { bubblesRect = it.boundsInWindow() },
                     )
                 }
             },
@@ -511,7 +543,17 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 sat?.place(x + main.width + gapPx, topPx + (pillH.roundToPx() - sat.height) / 2)
                 // Burbujas a la izquierda, centradas con la cámara.
                 val centerY = if (drop) topPx + main.height / 2 else (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
-                bub?.place(x - gapPx - bub.width, centerY - bub.height / 2)
+                if (bub != null) {
+                    // Sitio normal: a la izquierda de la isla. Guardadas: su borde derecho en el centro de la cámara.
+                    val k = if (drop) bubblesIn.value else 0f
+                    val camY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
+                    val bx = x - gapPx - bub.width
+                    val by = centerY - bub.height / 2
+                    bub.place(
+                        (bx + (cx - bub.width - bx) * k).roundToInt(),
+                        (by + (camY - bub.height / 2 - by) * k).roundToInt(),
+                    )
+                }
             }
         }
     }
