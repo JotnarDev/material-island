@@ -36,6 +36,7 @@ import dev.jotnar.materialisland.data.BackgroundMode
 import dev.jotnar.materialisland.data.GestureAction
 import dev.jotnar.materialisland.data.IdleAction
 import dev.jotnar.materialisland.data.IslandSettings
+import dev.jotnar.materialisland.data.OpenStyle
 import dev.jotnar.materialisland.data.NotificationMode
 import dev.jotnar.materialisland.data.SettingsStore
 import dev.jotnar.materialisland.ui.ChoiceRow
@@ -166,6 +167,26 @@ fun AnimationScreen(onBack: () -> Unit) {
     val s = settings()
     SettingsScaffold("Animation", onBack) {
         IslandPreview(200.dp)
+        GroupTitle("Open style")
+        Group(
+            {
+                SegmentedRow("How the island leaves the camera", OpenStyle.entries, s.openStyle, { it.label }) { v ->
+                    set { it.copy(openStyle = v) }
+                }
+            },
+            *(if (s.openStyle == OpenStyle.DROP) arrayOf<@Composable () -> Unit>({
+                SliderRow(
+                    "Drop distance", s.dropGapDp, 2f..24f, { "${it.roundToInt()} dp" },
+                    subtitle = "Gap between the camera and the island",
+                ) { v -> set { it.copy(dropGapDp = v) } }
+            }) else emptyArray()),
+        )
+        Text(
+            if (s.openStyle == OpenStyle.DROP) "A drop pulls away from the camera on a liquid neck, falls, bounces and opens into the island below it."
+            else "The camera hole stretches into a pill, like a classic dynamic island.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
         GroupTitle("Springs")
         Group(
             {

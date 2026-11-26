@@ -49,6 +49,12 @@ enum class IdleAction(val label: String) {
 
 /** Qué notificaciones aparecen como aviso. */
 @Serializable
+/** Cómo sale la isla de la cámara. */
+enum class OpenStyle(val label: String) {
+    MORPH("Morph"),
+    DROP("Liquid drop"),
+}
+
 enum class NotificationMode(val label: String) {
     ALL("All"),
     MESSAGES("Messages only"),
@@ -92,6 +98,10 @@ data class IslandSettings(
     val damping: Float = 0.68f,
     /** Multiplicador de rigidez: más = más rápido. */
     val speed: Float = 1f,
+    /** MORPH: la cámara se estira en píldora. DROP: una gota cae de la cámara y se abre debajo. */
+    val openStyle: OpenStyle = OpenStyle.MORPH,
+    /** Separación entre la cámara y la isla en el estilo DROP. */
+    val dropGapDp: Float = 8f,
 
     // ── Actividades ──────────────────────────────────────────────────
     val calls: Boolean = true,

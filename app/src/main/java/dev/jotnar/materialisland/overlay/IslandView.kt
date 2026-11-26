@@ -78,6 +78,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.Animatable
+import dev.jotnar.materialisland.data.OpenStyle
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -252,8 +258,15 @@ fun IslandView(
 private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb: IslandCallbacks, modifier: Modifier) {
     val density = LocalDensity.current
     val primary = ui.state.primary
-    val mode = resolveMode(ui)
+    val targetMode = resolveMode(ui)
+    val drop = s.openStyle == OpenStyle.DROP
 
+    // Estilo "gota": la isla no cambia de forma sobre la cámara. Una gota (tamaño de reposo) se
+    // estira desde la cámara con un cuello líquido, se suelta, cae rebotando y al aterrizar se abre.
+    // Al cerrar: se encoge a gota, sube, el cuello vuelve a formarse y se reabsorbe en la cámara.
+    // `mode` es lo que se dibuja (va por detrás de `targetMode` durante la caída/subida).
+    var mode by remember { mutableStateOf(targetMode) }
+    var lowered by remember { mutableStateOf(drop && !targetMode.isResting()) }
     val pillH = (geo.holeDiameterDp + 2 * s.pillPaddingDp).dp
     val dims = Dims(
         pillH = pillH,
@@ -267,14 +280,48 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     )
 
     val stiff = 380f * s.speed
-    val sizeSpec = spring<IntSize>(dampingRatio = s.damping, stiffness = stiff)
+    val sizeSpec = spring<IntSize>(
+        // En el estilo gota, el encogimiento a gota no rebota (si no, pasa por una barra delgada).
+        dampingRatio = if (drop && mode.isResting()) 0.9f else s.damping,
+        stiffness = stiff,
+    )
     val dpSpec = spring<Dp>(dampingRatio = s.damping, stiffness = stiff)
 
-    val resting = mode == Mode.REST || mode == Mode.HIDDEN
+    val resting = mode.isResting()
     val holeTop = geo.holeCenterYDp.dp
-    val top by animateDpAsState(
+    val restTop = holeTop - dims.restD / 2 + s.offsetYDp.dp
+    val dropTop = holeTop + dims.restD / 2 + s.dropGapDp.dp + s.offsetYDp.dp
+    // Punto donde el cuello se corta: un poco antes de llegar, para que la gota "se suelte" y rebote.
+    val breakTop = dropTop - s.dropGapDp.dp * 0.35f
+    val morphTop by animateDpAsState(
         (if (resting) holeTop - dims.restD / 2 else holeTop - pillH / 2) + s.offsetYDp.dp, dpSpec, label = "top",
     )
+    val dropAnim = remember { Animatable(if (lowered) dropTop else restTop, Dp.VectorConverter) }
+    LaunchedEffect(targetMode, drop, restTop, dropTop) {
+        if (!drop) { mode = targetMode; lowered = false; return@LaunchedEffect }
+        val wantDown = !targetMode.isResting()
+        when {
+            wantDown && !lowered -> {
+                lowered = true; mode = Mode.REST
+                // 1) se estira despacio con el cuello  2) se suelta y cae con rebote  3) se abre
+                dropAnim.animateTo(breakTop, tween((240 / s.speed).toInt(), easing = CubicBezierEasing(0.55f, 0f, 0.85f, 0.55f)))
+                launch { dropAnim.animateTo(dropTop, spring(dampingRatio = 0.42f, stiffness = stiff * 1.1f)) }
+                delay((90 / s.speed).toLong())
+                mode = targetMode
+            }
+            !wantDown && lowered -> {
+                mode = Mode.REST
+                delay((220 / s.speed).toLong())                                    // se encoge a gota
+                dropAnim.animateTo(restTop, spring(dampingRatio = 0.62f, stiffness = stiff * 0.8f)) // sube
+                lowered = false; mode = targetMode
+            }
+            else -> {
+                mode = targetMode
+                if (!dropAnim.isRunning) dropAnim.snapTo(if (lowered) dropTop else restTop)
+            }
+        }
+    }
+    val top = if (drop) dropAnim.value else morphTop
     val corner by animateDpAsState(
         when (mode) {
             Mode.REST, Mode.HIDDEN -> dims.restD / 2
@@ -439,7 +486,18 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 }
             },
         ),
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().then(
+            if (drop && mode != Mode.HIDDEN) Modifier.drawBehind {
+                drawLiquidNeck(
+                    cx = cx.toFloat(),
+                    camCenterY = (holeTop + s.offsetYDp.dp).toPx(),
+                    r = (dims.restD / 2).toPx(),
+                    dropTop = top.toPx(),
+                    breakGap = (breakTop - restTop - dims.restD).toPx(),
+                    color = bg.copy(alpha = alpha),
+                )
+            } else Modifier,
+        ),
     ) { (mainM, satM, bubM), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val main = mainM.firstOrNull()?.measure(loose)
@@ -452,7 +510,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 main.place(x, topPx)
                 sat?.place(x + main.width + gapPx, topPx + (pillH.roundToPx() - sat.height) / 2)
                 // Burbujas a la izquierda, centradas con la cámara.
-                val centerY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
+                val centerY = if (drop) topPx + main.height / 2 else (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
                 bub?.place(x - gapPx - bub.width, centerY - bub.height / 2)
             }
         }
@@ -460,6 +518,41 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 }
 
 private data class Frame(val mode: Mode, val item: IslandItem?)
+
+private fun Mode.isResting() = this == Mode.REST || this == Mode.HIDDEN
+
+/**
+ * Cuello líquido entre la cámara y la gota, tratadas como dos círculos de radio [r]. Mientras se
+ * solapan, rellena la "cintura" para que parezcan una sola forma que se estira; al separarse, el
+ * cuello se adelgaza y se corta cuando el hueco llega a [breakGap].
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLiquidNeck(
+    cx: Float, camCenterY: Float, r: Float, dropTop: Float, breakGap: Float, color: Color,
+) {
+    val dropCenterY = dropTop + r
+    val d = dropCenterY - camCenterY                   // distancia entre centros
+    val gap = d - 2 * r                                // hueco entre bordes (negativo = se solapan)
+    if (d < r * 0.25f || breakGap <= 0f || gap >= breakGap) return
+    // Ancho de la cintura: casi todo el radio cuando se solapan, se cierra hasta 0 en breakGap.
+    val waist = if (gap <= 0f) r * (0.92f - 0.35f * (d / (2 * r)))
+    else r * 0.57f * (1f - gap / breakGap).let { it * it }
+    // Puntos de anclaje en cada círculo (ángulo de ~55° desde el eje vertical).
+    val ax = r * 0.82f; val ay = r * 0.57f
+    val yA = camCenterY + ay; val yB = dropCenterY - ay
+    val mid = (yA + yB) / 2f; val k = (yB - yA) * 0.45f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - ax, yA)
+        cubicTo(cx - ax + r * 0.12f, yA + k * 0.6f, cx - waist, mid - k * 0.5f, cx - waist, mid)
+        cubicTo(cx - waist, mid + k * 0.5f, cx - ax + r * 0.12f, yB - k * 0.6f, cx - ax, yB)
+        lineTo(cx + ax, yB)
+        cubicTo(cx + ax - r * 0.12f, yB - k * 0.6f, cx + waist, mid + k * 0.5f, cx + waist, mid)
+        cubicTo(cx + waist, mid - k * 0.5f, cx + ax - r * 0.12f, yA + k * 0.6f, cx + ax, yA)
+        close()
+    }
+    drawPath(path, color)
+    // La parte de arriba del cuello nace dentro de la cámara: un círculo detrás la "tapa" igual que el agujero real.
+    drawCircle(color, r, androidx.compose.ui.geometry.Offset(cx, camCenterY))
+}
 
 private fun Rect.toAndroid() = android.graphics.Rect(left.roundToInt(), top.roundToInt(), right.roundToInt(), bottom.roundToInt())
 
