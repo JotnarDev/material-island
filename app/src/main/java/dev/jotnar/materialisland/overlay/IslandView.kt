@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -234,6 +235,24 @@ private data class Dims(
 )
 
 private val Tabular = TextStyle(fontFeatureSettings = "tnum")
+
+/**
+ * Espaciado de la isla, sacado de la guía del banner de llamada entrante:
+ * 10 de margen con la pantalla · banner de 76 · 12 de padding junto a un elemento redondo y 16 en los
+ * demás bordes · avatar de 46 · 8 entre ícono y texto · 2 entre líneas · 12 entre grupos y botones ·
+ * botones de 40 · títulos de 16.
+ */
+private object Sp {
+    val banner = 76.dp          // alto de una fila tipo banner
+    val avatar = 46.dp          // avatar / elemento principal a la izquierda
+    val action = 40.dp          // botones redondos y alto de los botones de acción
+    val leadRound = 12.dp       // borde junto a un elemento redondo (avatar, ícono)
+    val edge = 16.dp            // resto de bordes
+    val iconText = 8.dp         // ícono → texto
+    val lines = 2.dp            // entre dos líneas de texto
+    val group = 12.dp           // entre grupos y entre botones
+    val bannerV = (banner - avatar) / 2   // 15: centra el avatar en el banner
+}
 
 // ── Composable principal ──────────────────────────────────────────────
 
@@ -762,7 +781,7 @@ private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
             )
         }
         Spacer(Modifier.width(d.cameraW))
-        Box(Modifier.weight(1f).padding(end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+        Box(Modifier.weight(1f).padding(end = Sp.iconText), contentAlignment = Alignment.CenterEnd) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (copied) Icon(Icons.Rounded.Check, null, tint = color, modifier = Modifier.size(18.dp).padding(end = 2.dp))
                 Text(
@@ -785,15 +804,20 @@ private fun Card(
     sizeSpec: androidx.compose.animation.core.FiniteAnimationSpec<IntSize>,
 ) {
     Column(Modifier.width(d.cardW).animateContentSize(sizeSpec)) {
-        CardHeader(item, p, d)
-        Column(Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 4.dp)) {
-            when (item.kind) {
-                Kind.MEDIA -> MediaBody(item, p, s, cb)
-                Kind.CALL -> CallBody(item, p, cb)
-                Kind.TIMER, Kind.RECORDING -> TimerBody(item, p, cb)
-                Kind.NAVIGATION -> NavBody(item, p, cb)
-                Kind.NOTIFICATION -> NotificationBody(item, p, ui, cb)
-                else -> ProgressBody(item, p, cb)
+        when (item.kind) {
+            // Llamadas y mensajes son banners: la etiqueta de la app va encima del nombre, sin encabezado.
+            Kind.CALL -> CallBody(item, p, cb)
+            Kind.NOTIFICATION -> NotificationBody(item, p, ui, cb)
+            else -> {
+                CardHeader(item, p, d)
+                Column(Modifier.padding(start = Sp.edge, end = Sp.edge, bottom = Sp.edge)) {
+                    when (item.kind) {
+                        Kind.MEDIA -> MediaBody(item, p, s, cb)
+                        Kind.TIMER, Kind.RECORDING -> TimerBody(item, p, cb)
+                        Kind.NAVIGATION -> NavBody(item, p, cb)
+                        else -> ProgressBody(item, p, cb)
+                    }
+                }
             }
         }
     }
@@ -802,12 +826,12 @@ private fun Card(
 @Composable
 private fun CardHeader(item: IslandItem, p: IslandPalette, d: Dims) {
     Row(
-        Modifier.fillMaxWidth().height(d.pillH).padding(horizontal = 16.dp),
+        Modifier.fillMaxWidth().height(d.pillH).padding(horizontal = Sp.edge),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             AppOrKindIcon(item, p, 20.dp)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(Sp.iconText))
             Text(
                 item.appLabel ?: kindLabel(item.kind), style = MaterialTheme.typography.labelLarge,
                 color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -832,18 +856,21 @@ private fun CardHeader(item: IslandItem, p: IslandPalette, d: Dims) {
 @Composable
 private fun ActionRow(item: IslandItem, p: IslandPalette, cb: IslandCallbacks, actions: List<IslandAction> = item.actions) {
     if (actions.isEmpty()) return
-    Spacer(Modifier.height(14.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Spacer(Modifier.height(Sp.group))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Sp.group)) {
         actions.take(3).forEach { a ->
             FilledTonalButton(
                 onClick = { if (a.onReply != null) cb.onReplyStart(item) else cb.onAction(item, a) },
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = p.accentContainer, contentColor = p.onAccentContainer,
                 ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = Sp.group, vertical = 0.dp),
+                modifier = Modifier.weight(1f).height(Sp.action),
             ) {
-                if (a.onReply != null) Icon(Icons.AutoMirrored.Rounded.Reply, null, Modifier.size(18.dp).padding(end = 4.dp))
+                if (a.onReply != null) {
+                    Icon(Icons.AutoMirrored.Rounded.Reply, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(Sp.iconText / 2))
+                }
                 Text(a.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -860,17 +887,18 @@ private fun MediaBody(item: IslandItem, p: IslandPalette, s: IslandSettings, cb:
     }
     val pos = m.currentPosition(now)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        MorphingArt(m.art, m.playing, 76.dp, s.morphingArt, p.accentContainer)
-        Spacer(Modifier.width(16.dp))
+        MorphingArt(m.art, m.playing, Sp.banner, s.morphingArt, p.accentContainer)
+        Spacer(Modifier.width(Sp.group))
         Column(Modifier.weight(1f)) {
             Text(
                 m.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = p.content, maxLines = 1, modifier = Modifier.basicMarquee(),
             )
+            Spacer(Modifier.height(Sp.lines))
             Text(m.artist, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(Sp.group))
     if (m.durationMs > 0) {
         WavyProgress(
             progress = pos.toFloat() / m.durationMs, animate = m.playing, color = p.accent, track = p.track,
@@ -882,7 +910,7 @@ private fun MediaBody(item: IslandItem, p: IslandPalette, s: IslandSettings, cb:
             Text(formatDuration(m.durationMs), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = p.variant)
         }
     }
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(Sp.iconText))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { cb.onMedia(item, MediaCmd.PREV) }, modifier = Modifier.size(56.dp)) {
             Icon(Icons.Rounded.SkipPrevious, "Previous", tint = p.content, modifier = Modifier.size(32.dp))
@@ -924,27 +952,46 @@ private fun Avatar(item: IslandItem, p: IslandPalette, size: Dp) {
     }
 }
 
+/** Una línea pequeña encima del título (app, estado, hora), como "iPhone" en la guía. */
+@Composable
+private fun Caption(text: String, color: Color) = Text(
+    text, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis,
+)
+
+/**
+ * Banner de llamada, medidas de la guía: 76 de alto · 12 | avatar 46 | 8 | etiqueta + nombre (16) | 12 |
+ * botones de 40 separados 12 | 16.
+ */
 @Composable
 private fun CallBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Avatar(item, p, 56.dp)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(item.title, style = MaterialTheme.typography.titleLarge, color = p.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(item.text ?: "", style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-    Spacer(Modifier.height(18.dp))
     val round = item.actions.filter { it.style != ActionStyle.NORMAL }
     val other = item.actions.filter { it.style == ActionStyle.NORMAL }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-        other.take(2).forEach { a ->
-            FilledTonalButton(
-                onClick = { cb.onAction(item, a) },
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = p.accentContainer, contentColor = p.onAccentContainer),
-            ) { Text(a.title, maxLines = 1) }
+    Row(
+        Modifier.fillMaxWidth().height(Sp.banner).padding(start = Sp.leadRound, end = Sp.edge),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Avatar(item, p, Sp.avatar)
+        Spacer(Modifier.width(Sp.iconText))
+        Column(Modifier.weight(1f)) {
+            val caption = if (item.incoming) item.appLabel ?: "Incoming call"
+            else chronoText(item, rememberNow()) ?: item.text ?: "On call"
+            Caption(caption, if (item.incoming) p.variant else SoftGreen)
+            Spacer(Modifier.height(Sp.lines))
+            Text(
+                item.title, style = MaterialTheme.typography.titleMedium, color = p.content,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
         }
-        round.forEach { a -> CallButton(a, item.incoming) { cb.onAction(item, a) } }
+        Spacer(Modifier.width(Sp.group))
+        round.forEachIndexed { i, a ->
+            if (i > 0) Spacer(Modifier.width(Sp.group))
+            CallButton(a, item.incoming) { cb.onAction(item, a) }
+        }
+    }
+    if (other.isNotEmpty()) {
+        Column(Modifier.padding(start = Sp.edge, end = Sp.edge, bottom = Sp.edge)) {
+            ActionRow(item, p, cb, other)
+        }
     }
 }
 
@@ -957,21 +1004,16 @@ private fun CallButton(a: IslandAction, incoming: Boolean, onClick: () -> Unit) 
         val gate by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1600, easing = LinearEasing)), label = "g")
         if (gate < 0.35f) r else 0f
     } else 0f
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledIconButton(
-            onClick = onClick, modifier = Modifier.size(width = if (positive) 72.dp else 64.dp, height = 64.dp),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (positive) CallGreen else CallRed, contentColor = Color.White,
-            ),
-        ) {
-            Icon(
-                if (positive) Icons.Rounded.Call else Icons.Rounded.CallEnd, a.title,
-                modifier = Modifier.size(28.dp).rotate(wiggle),
-            )
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(a.title, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+    FilledIconButton(
+        onClick = onClick, modifier = Modifier.size(Sp.action), shape = CircleShape,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = if (positive) CallGreen else CallRed, contentColor = Color.White,
+        ),
+    ) {
+        Icon(
+            if (positive) Icons.Rounded.Call else Icons.Rounded.CallEnd, a.title,
+            modifier = Modifier.size(22.dp).rotate(wiggle),
+        )
     }
 }
 
@@ -987,11 +1029,12 @@ private fun TimerBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
                 color = if (red) SoftRed else p.accent, maxLines = 1,
             )
             val sub = listOfNotNull(item.title.takeIf { chronoText(item, now) != null }, item.text).joinToString(" · ")
+            if (sub.isNotBlank()) Spacer(Modifier.height(Sp.lines))
             if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         PulsingShapeIcon(
             if (red) Icons.Rounded.FiberManualRecord else Icons.Rounded.Timer,
-            if (red) CallRed else p.accentContainer, if (red) Color.White else p.onAccentContainer, 56.dp, true,
+            if (red) CallRed else p.accentContainer, if (red) Color.White else p.onAccentContainer, Sp.avatar + Sp.iconText, true,
         )
     }
     ActionRow(item, p, cb)
@@ -1000,15 +1043,15 @@ private fun TimerBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
 @Composable
 private fun NavBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(64.dp).clip(RoundedCornerShape(22.dp)).background(p.accentContainer), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(Sp.avatar).clip(RoundedCornerShape(14.dp)).background(p.accentContainer), contentAlignment = Alignment.Center) {
             val img = item.image
-            if (img != null) Image(img.asImageBitmap(), null, Modifier.size(44.dp))
-            else Icon(Icons.Rounded.TurnRight, null, tint = p.onAccentContainer, modifier = Modifier.size(40.dp))
+            if (img != null) Image(img.asImageBitmap(), null, Modifier.size(Sp.avatar * 0.7f))
+            else Icon(Icons.Rounded.TurnRight, null, tint = p.onAccentContainer, modifier = Modifier.size(Sp.avatar * 0.62f))
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(Sp.group))
         Column(Modifier.weight(1f)) {
-            Text(item.title, style = MaterialTheme.typography.titleLarge, color = p.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            item.text?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            Text(item.title, style = MaterialTheme.typography.titleMedium, color = p.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            item.text?.let { Spacer(Modifier.height(Sp.lines)); Text(it, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
     }
     ActionRow(item, p, cb)
@@ -1018,33 +1061,43 @@ private fun NavBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
 private fun ProgressBody(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         val img = item.image
-        if (img != null) Image(img.asImageBitmap(), null, Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)))
-        else AppOrKindIcon(item, p, 44.dp)
-        Spacer(Modifier.width(14.dp))
+        if (img != null) Image(img.asImageBitmap(), null, Modifier.size(Sp.avatar).clip(RoundedCornerShape(14.dp)))
+        else AppOrKindIcon(item, p, Sp.avatar)
+        Spacer(Modifier.width(Sp.group))
         Column(Modifier.weight(1f)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium, color = p.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            item.text?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            item.text?.let { Spacer(Modifier.height(Sp.lines)); Text(it, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
-        if (item.indeterminate) LoadingIndicator(Modifier.size(44.dp), color = p.accent)
+        if (item.indeterminate) { Spacer(Modifier.width(Sp.group)); LoadingIndicator(Modifier.size(Sp.action), color = p.accent) }
     }
     if (!item.indeterminate && item.progress >= 0f) {
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(Sp.group))
         WavyProgress(item.progress, animate = true, color = p.accent, track = p.track)
     }
     ActionRow(item, p, cb)
 }
 
+/**
+ * Mensaje como banner: 12 | avatar 46 | 8 | "App · now" encima del remitente (16) y el texto | 16.
+ * Las acciones (40 de alto, separadas 12) van debajo con 16 a los lados.
+ */
 @Composable
 private fun NotificationBody(item: IslandItem, p: IslandPalette, ui: IslandUi, cb: IslandCallbacks) {
-    Row(verticalAlignment = Alignment.Top) {
-        Avatar(item, p, 44.dp)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = Sp.leadRound, end = Sp.edge, top = Sp.bannerV, bottom = Sp.bannerV),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Avatar(item, p, Sp.avatar)
+        Spacer(Modifier.width(Sp.iconText))
+        Column(Modifier.weight(1f).heightIn(min = Sp.avatar), verticalArrangement = Arrangement.Center) {
+            Caption(listOfNotNull(item.appLabel, "now").joinToString(" · "), p.variant)
+            Spacer(Modifier.height(Sp.lines))
             Text(
                 item.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = p.content, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             item.text?.let {
+                Spacer(Modifier.height(Sp.lines))
                 Text(
                     it, style = MaterialTheme.typography.bodyMedium, color = p.variant,
                     maxLines = if (ui.expanded) 10 else 2, overflow = TextOverflow.Ellipsis,
@@ -1053,11 +1106,34 @@ private fun NotificationBody(item: IslandItem, p: IslandPalette, ui: IslandUi, c
         }
     }
     val reply = item.actions.firstOrNull { it.onReply != null }
-    if (ui.replyingId == item.id && reply != null) {
-        Spacer(Modifier.height(14.dp))
-        ReplyField(p, onSend = { cb.onReplySend(item, reply, it) }, onCancel = { cb.onReplyCancel() })
-    } else {
-        ActionRow(item, p, cb)
+    Column(Modifier.padding(start = Sp.edge, end = Sp.edge, bottom = if (item.actions.isEmpty()) 0.dp else Sp.edge)) {
+        if (ui.replyingId == item.id && reply != null) {
+            ReplyField(p, onSend = { cb.onReplySend(item, reply, it) }, onCancel = { cb.onReplyCancel() })
+        } else if (item.actions.isNotEmpty()) {
+            // El banner ya deja 15 debajo del texto: la fila va sin espacio extra arriba.
+            ActionRowTight(item, p, cb)
+        }
+    }
+}
+
+/** Fila de acciones sin el espacio superior (cuando el bloque de arriba ya trae su padding). */
+@Composable
+private fun ActionRowTight(item: IslandItem, p: IslandPalette, cb: IslandCallbacks) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Sp.group)) {
+        item.actions.take(3).forEach { a ->
+            FilledTonalButton(
+                onClick = { if (a.onReply != null) cb.onReplyStart(item) else cb.onAction(item, a) },
+                colors = ButtonDefaults.filledTonalButtonColors(containerColor = p.accentContainer, contentColor = p.onAccentContainer),
+                contentPadding = PaddingValues(horizontal = Sp.group, vertical = 0.dp),
+                modifier = Modifier.weight(1f).height(Sp.action),
+            ) {
+                if (a.onReply != null) {
+                    Icon(Icons.AutoMirrored.Rounded.Reply, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(Sp.iconText / 2))
+                }
+                Text(a.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 }
 
@@ -1073,12 +1149,12 @@ private fun ReplyField(p: IslandPalette, onSend: (String) -> Unit, onCancel: () 
     }
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(p.accentContainer.copy(alpha = 0.55f))
-            .padding(start = 18.dp, end = 4.dp),
+            .padding(start = Sp.edge, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         BasicTextField(
             value = text, onValueChange = { text = it },
-            modifier = Modifier.weight(1f).focusRequester(fr).padding(vertical = 14.dp),
+            modifier = Modifier.weight(1f).focusRequester(fr).padding(vertical = Sp.group),
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = p.content),
             cursorBrush = SolidColor(p.accent),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
