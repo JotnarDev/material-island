@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -66,82 +64,192 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val Up = Color(0xFF6DD58C)
-private val Down = Color(0xFFFF8A80)
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.PathEffect
+
+private val Up = Color(0xFF34D27B)
+private val Down = Color(0xFFFF4D6A)
 private val Live = Color(0xFFFF5449)
-private val Sun = Color(0xFFFFC95C)
-private val PageH = 156.dp
+private val Sun = Color(0xFFFFC21A)
+private val Moon = Color(0xFFCBC4FF)
+private val CloudLight = Color(0xFFE9EDF2)
+private val CloudDark = Color(0xFF9AA4B1)
+private val RainBlue = Color(0xFF5CB8FF)
+private val TempBlue = Color(0xFF8CC8FF)
 private val Num = TextStyle(fontFeatureSettings = "tnum")
 
-// ── Icono junto a la cámara ───────────────────────────────────────────
+// ── Mini píldora a la derecha de la cámara ───────────────────────────
 
-/** Círculo a la izquierda de la cámara: el clima de ahora, o un destello si no hay datos. */
+/**
+ * La vista elegida en pequeño (clima: icono y grados; deportes: marcador; bolsa: variación; alertas: cuántas).
+ * Deslizar de lado cambia de vista; tocar abre esa vista debajo.
+ */
 @Composable
-internal fun GlanceChip(data: Glance.Data, size: Dp, s: IslandSettings, cb: Callbacks, modifier: Modifier) {
-    val w = data.weather?.takeIf { GlanceView.WEATHER in s.glanceViews }
-    val live = data.liveGame != null && GlanceView.SPORTS in s.glanceViews
-    Box(
-        modifier.size(size).pointerInput(Unit) { detectTapGestures { cb.onGlanceTap() } },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(Modifier.fillMaxSize().clip(CircleShape).background(Color.Black), contentAlignment = Alignment.Center) {
-            when {
-                w != null -> Icon(weatherIcon(w.code, w.isDay), null, tint = weatherTint(w.code, w.isDay), modifier = Modifier.size(size * 0.58f))
-                live -> Icon(sportIcon(data.liveGame!!.sport), null, tint = Color.White, modifier = Modifier.size(size * 0.56f))
-                else -> Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(size * 0.5f))
-            }
+internal fun GlanceChip(ui: IslandUi, h: Dp, cb: IslandCallbacks, modifier: Modifier) {
+    val v = ui.glanceView ?: return
+    val data = ui.glanceData
+    val live = data.liveGame != null
+    var drag by remember { mutableFloatStateOf(0f) }
+    Box(modifier) {
+        Box(
+            Modifier.height(h).widthIn(min = h).clip(CircleShape).background(Color.Black)
+                .pointerInput(Unit) { detectTapGestures { cb.onGlanceTap() } }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { drag = 0f },
+                        onDragEnd = { if (abs(drag) > 14.dp.toPx()) cb.onGlanceSwipe(if (drag < 0) 1 else -1) },
+                    ) { c, d -> c.consume(); drag += d }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            AnimatedContent(
+                v,
+                transitionSpec = {
+                    val dir = ui.glanceDir
+                    (slideInHorizontally(spring(0.8f, 600f)) { it * dir / 2 } + fadeIn(tween(160, 40)))
+                        .togetherWith(slideOutHorizontally(tween(140)) { -it * dir / 2 } + fadeOut(tween(90)))
+                        .using(SizeTransform(clip = true) { _, _ -> spring(0.8f, 600f) })
+                },
+                contentAlignment = Alignment.Center,
+                label = "glanceChip",
+            ) { view -> ChipContent(view, data, h) }
         }
-        // Punto rojo latiendo si hay un partido en vivo.
-        if (live) {
+        // Punto rojo latiendo si hay un partido en vivo y el icono muestra otra cosa.
+        if (live && v != GlanceView.SPORTS) {
             val t = rememberInfiniteTransition(label = "live")
             val a by t.animateFloat(1f, 0.35f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "liveDot")
             Box(
-                Modifier.align(Alignment.TopEnd).size(size * 0.3f).clip(CircleShape).background(Color.Black)
-                    .padding(size * 0.06f).clip(CircleShape).background(Live.copy(alpha = a)),
+                Modifier.align(Alignment.TopEnd).size(h * 0.3f).clip(CircleShape).background(Color.Black)
+                    .padding(h * 0.06f).clip(CircleShape).background(Live.copy(alpha = a)),
             )
         }
     }
 }
 
-private typealias Callbacks = IslandCallbacks
-
-// ── Tarjeta ───────────────────────────────────────────────────────────
-
-/** Tarjeta deslizable con las vistas que el usuario eligió, en su orden. */
 @Composable
-internal fun GlanceCard(s: IslandSettings, p: IslandPalette, d: Dims, data: Glance.Data, cb: IslandCallbacks) {
-    val views = GlanceView.entries.filter { it in s.glanceViews }
-    Column(Modifier.width(d.cardW).padding(top = Sp.edge, bottom = Sp.group)) {
-        if (views.isEmpty()) {
-            Text(
-                "Choose views in At a glance settings.", style = MaterialTheme.typography.bodyMedium, color = p.variant,
-                modifier = Modifier.padding(horizontal = Sp.edge),
-            )
-            return@Column
+private fun ChipContent(v: GlanceView, data: Glance.Data, h: Dp) {
+    val ctx = LocalContext.current
+    val icon = h * 0.58f
+    var text: String? = null
+    var textColor = Color.White
+    val lead: @Composable () -> Unit = when (v) {
+        GlanceView.WEATHER -> {
+            val w = data.weather
+            if (w != null) {
+                text = "${w.temp.roundToInt()}°"
+                ({ WeatherGlyph(w.code, w.isDay, icon) })
+            } else ({ Icon(Icons.Rounded.WbSunny, null, tint = Sun, modifier = Modifier.size(icon)) })
         }
-        val pager = rememberPagerState { views.size }
-        LaunchedEffect(pager.currentPage) { if (pager.currentPage != 0 || pager.settledPage != 0) cb.onGlancePage() }
-        HorizontalPager(pager, Modifier.fillMaxWidth(), key = { views[it].name }) { i ->
-            Column(Modifier.fillMaxWidth().padding(horizontal = Sp.edge)) {
-                Header(views[i], data, p)
-                Spacer(Modifier.height(Sp.group))
-                Box(Modifier.fillMaxWidth().height(PageH)) {
-                    if (!data.online && !data.hasAny) Offline(p)
-                    else when (views[i]) {
-                        GlanceView.WEATHER -> WeatherPage(data.weather, s, p)
-                        GlanceView.SPORTS -> SportsPage(data.games, p)
-                        GlanceView.FINANCE -> FinancePage(data.quotes, p)
-                        GlanceView.ALERTS -> AlertsPage(data.alerts, p)
-                    }
+        GlanceView.SPORTS -> {
+            val g = data.liveGame ?: data.games.firstOrNull()
+            when {
+                g == null -> ({ Icon(Icons.Rounded.EmojiEvents, null, tint = Color.White, modifier = Modifier.size(icon)) })
+                g.live -> {
+                    text = "${g.away.score ?: 0}–${g.home.score ?: 0}"
+                    ({
+                        val t = rememberInfiniteTransition(label = "live")
+                        val a by t.animateFloat(1f, 0.35f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "liveDot")
+                        Box(Modifier.size(7.dp).clip(CircleShape).background(Live.copy(alpha = a)))
+                    })
+                }
+                else -> {
+                    text = if (g.state == "pre") {
+                        java.text.SimpleDateFormat(
+                            DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "Hm" else "hm"),
+                            Locale.getDefault(),
+                        ).format(Date(g.start))
+                    } else "${g.away.score ?: 0}–${g.home.score ?: 0}"
+                    ({ Icon(sportIcon(g.sport), null, tint = Color.White, modifier = Modifier.size(icon * 0.85f)) })
                 }
             }
         }
+        GlanceView.FINANCE -> {
+            val q = data.quotes.firstOrNull()
+            if (q != null) {
+                val up = q.changePct >= 0
+                textColor = if (up) Up else Down
+                text = String.format(Locale.getDefault(), "%s%.1f%%", if (up) "+" else "−", abs(q.changePct))
+                ({
+                    Icon(
+                        if (up) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown, null,
+                        tint = textColor, modifier = Modifier.size(icon * 0.9f),
+                    )
+                })
+            } else ({ Icon(Icons.Rounded.ShowChart, null, tint = Color.White, modifier = Modifier.size(icon)) })
+        }
+        GlanceView.ALERTS -> {
+            val first = data.alerts.firstOrNull()
+            if (first != null) {
+                if (data.alerts.size > 1) text = "${data.alerts.size}"
+                ({ Icon(alertIcon(first.kind), null, tint = alertTint(first.kind), modifier = Modifier.size(icon * 0.9f)) })
+            } else ({ Icon(Icons.Rounded.NotificationsNone, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(icon * 0.9f)) })
+        }
+    }
+    if (text == null) {
+        Box(Modifier.size(h), contentAlignment = Alignment.Center) { lead() }
+    } else {
+        Row(Modifier.height(h).padding(start = 7.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            lead()
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text!!, color = textColor, maxLines = 1,
+                style = MaterialTheme.typography.labelLarge.merge(Num).copy(fontWeight = FontWeight.SemiBold),
+            )
+        }
+    }
+}
+
+// ── Tarjeta ───────────────────────────────────────────────────────────
+
+/** La vista elegida, abierta debajo de la cámara. Deslizar de lado cambia de vista. */
+@Composable
+internal fun GlanceCard(s: IslandSettings, p: IslandPalette, d: Dims, ui: IslandUi, cb: IslandCallbacks) {
+    val data = ui.glanceData
+    val views = GlanceView.entries.filter { it in s.glanceViews }
+    val v = ui.glanceView
+    Box(Modifier.width(d.cardW)) {
+        if (v == null) {
+            Text(
+                "Choose views in At a glance settings.", style = MaterialTheme.typography.bodyMedium, color = p.variant,
+                modifier = Modifier.padding(Sp.edge),
+            )
+            return@Box
+        }
+        AnimatedContent(
+            v,
+            transitionSpec = {
+                val dir = ui.glanceDir
+                (slideInHorizontally(spring(0.85f, 500f)) { it * dir / 3 } + fadeIn(tween(200, 60)))
+                    .togetherWith(slideOutHorizontally(tween(160)) { -it * dir / 3 } + fadeOut(tween(100)))
+                    .using(SizeTransform(clip = true) { _, _ -> spring(0.85f, 420f) })
+            },
+            label = "glanceCard",
+        ) { view ->
+            if (!data.online && !data.hasAny) Padded(view, data, p) { Offline(p) }
+            else when (view) {
+                GlanceView.WEATHER -> WeatherCard(data, s, p)
+                GlanceView.SPORTS -> Padded(view, data, p) { SportsPage(data.games, p) }
+                GlanceView.FINANCE -> Padded(view, data, p) { FinancePage(data.quotes, p) }
+                GlanceView.ALERTS -> Padded(view, data, p) { AlertsPage(data.alerts, p) }
+            }
+        }
         if (views.size > 1) {
-            Spacer(Modifier.height(Sp.iconText))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                views.indices.forEach { i ->
-                    val on = i == pager.currentPage
-                    val c by animateColorAsState(if (on) p.content else p.content.copy(alpha = 0.3f), label = "dot")
+            Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp)) {
+                views.forEachIndexed { i, it ->
+                    val on = it == v
+                    val c by animateColorAsState(if (on) Color.White else Color.White.copy(alpha = 0.3f), label = "dot")
                     val w by androidx.compose.animation.core.animateDpAsState(if (on) 16.dp else 6.dp, label = "dotW")
                     Box(Modifier.padding(horizontal = 3.dp).width(w).height(6.dp).clip(CircleShape).background(c))
                 }
@@ -151,22 +259,32 @@ internal fun GlanceCard(s: IslandSettings, p: IslandPalette, d: Dims, data: Glan
 }
 
 @Composable
+private fun Padded(v: GlanceView, data: Glance.Data, p: IslandPalette, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(start = Sp.edge, end = Sp.edge, top = Sp.edge, bottom = 28.dp)) {
+        Header(v, data, p)
+        Spacer(Modifier.height(Sp.group))
+        content()
+    }
+}
+
+@Composable
 private fun Header(v: GlanceView, data: Glance.Data, p: IslandPalette) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(viewIcon(v), null, tint = p.accent, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Caption(v.label, p.variant)
+        Caption(if (v == GlanceView.FINANCE) "My stocks" else v.label, p.variant)
         Spacer(Modifier.weight(1f))
-        val note = when {
-            !data.online -> "Offline"
-            data.updatedAt > 0 && System.currentTimeMillis() - data.updatedAt < 60_000 -> "Updated just now"
-            data.updatedAt > 0 -> "Updated " + DateUtils.getRelativeTimeSpanString(
-                data.updatedAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE,
-            ).toString().lowercase(Locale.getDefault())
-            else -> "Loading…"
-        }
-        Text(note, style = MaterialTheme.typography.labelSmall, color = p.variant.copy(alpha = 0.7f))
+        Text(updatedNote(data), style = MaterialTheme.typography.labelSmall, color = p.variant.copy(alpha = 0.7f))
     }
+}
+
+private fun updatedNote(data: Glance.Data): String = when {
+    !data.online -> "Offline"
+    data.updatedAt == 0L -> "Loading…"
+    System.currentTimeMillis() - data.updatedAt < 60_000 -> "Updated just now"
+    else -> "Updated " + DateUtils.getRelativeTimeSpanString(
+        data.updatedAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE,
+    ).toString().lowercase(Locale.getDefault())
 }
 
 @Composable
@@ -174,80 +292,223 @@ private fun Offline(p: IslandPalette) = Empty(Icons.Rounded.CloudOff, "No intern
 
 @Composable
 private fun Empty(icon: ImageVector, title: String, text: String, p: IslandPalette) {
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(
+        Modifier.fillMaxWidth().height(132.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+    ) {
         Box(Modifier.size(Sp.action).clip(CircleShape).background(p.accentContainer), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = p.onAccentContainer, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(Sp.iconText))
         Text(title, style = MaterialTheme.typography.titleSmall, color = p.content)
-        Spacer(Modifier.height(Sp.lines))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = p.variant, maxLines = 2)
+        if (text.isNotEmpty()) {
+            Spacer(Modifier.height(Sp.lines))
+            Text(text, style = MaterialTheme.typography.bodySmall, color = p.variant, maxLines = 2)
+        }
     }
 }
 
 // ── Clima ─────────────────────────────────────────────────────────────
 
+/** Tarjeta de clima: lugar, estado y temperatura grande; debajo las próximas horas sobre un degradado. */
 @Composable
-private fun WeatherPage(w: Glance.Weather?, s: IslandSettings, p: IslandPalette) {
-    if (s.glanceLat == null) return Empty(Icons.Rounded.LocationOn, "No location", "Pick a city in At a glance settings.", p)
-    if (w == null) return Empty(Icons.Rounded.Cloud, "Loading weather…", "", p)
+private fun WeatherCard(data: Glance.Data, s: IslandSettings, p: IslandPalette) {
+    val w = data.weather
+    if (s.glanceLat == null || w == null) {
+        return Padded(GlanceView.WEATHER, data, p) {
+            if (s.glanceLat == null) Empty(Icons.Rounded.LocationOn, "No location", "Pick a city in At a glance settings.", p)
+            else Empty(Icons.Rounded.Cloud, "Loading weather…", "", p)
+        }
+    }
     val ctx = LocalContext.current
-    Column {
+    val tint = skyTint(w.code, w.isDay)
+    Column(
+        Modifier.fillMaxWidth()
+            .background(Brush.verticalGradient(0f to Color.Transparent, 0.3f to Color.Transparent, 1f to tint))
+            .padding(start = Sp.edge + 4.dp, end = Sp.edge + 4.dp, top = Sp.edge + 2.dp, bottom = 30.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(weatherIcon(w.code, w.isDay), null, tint = weatherTint(w.code, w.isDay), modifier = Modifier.size(52.dp))
-            Spacer(Modifier.width(Sp.group))
-            Text("${w.temp.roundToInt()}°", style = MaterialTheme.typography.displayMedium.merge(Num), color = p.content)
-            Spacer(Modifier.width(Sp.group))
+            WeatherGlyph(w.code, w.isDay, 58.dp)
+            Spacer(Modifier.width(Sp.group + 2.dp))
             Column(Modifier.weight(1f)) {
-                Text(Glance.condition(w.code), style = MaterialTheme.typography.titleMedium, color = p.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    w.place.ifBlank { "Weather" }, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
                 Spacer(Modifier.height(Sp.lines))
                 Text(
-                    "H ${w.high.roundToInt()}°  ·  L ${w.low.roundToInt()}°", style = MaterialTheme.typography.bodyMedium.merge(Num),
-                    color = p.variant,
-                )
-                if (w.place.isNotBlank()) Text(
-                    w.place, style = MaterialTheme.typography.bodySmall, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    "${Glance.condition(w.code)} · H ${w.high.roundToInt()}° L ${w.low.roundToInt()}°",
+                    style = MaterialTheme.typography.bodyMedium.merge(Num), color = Color.White.copy(alpha = 0.62f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
+            Spacer(Modifier.width(Sp.iconText))
+            Text(
+                "${w.temp.roundToInt()}°", color = TempBlue,
+                style = MaterialTheme.typography.displayMedium.merge(Num).copy(fontWeight = FontWeight.Normal),
+            )
         }
-        Spacer(Modifier.height(Sp.group))
-        val pattern = remember { DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "HH" else "ha") }
+        Spacer(Modifier.height(Sp.group + 6.dp))
+        val pattern = remember { DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "Hm" else "h a") }
         val fmt = remember(pattern) { java.text.SimpleDateFormat(pattern, Locale.getDefault()) }
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(p.accentContainer.copy(alpha = 0.45f))
-                .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            w.hours.drop(1).take(6).forEach { h ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            w.hours.drop(1).take(5).forEach { h ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(fmt.format(Date(h.time)), style = MaterialTheme.typography.labelSmall, color = p.variant)
-                    Spacer(Modifier.height(4.dp))
-                    Icon(weatherIcon(h.code, h.isDay), null, tint = weatherTint(h.code, h.isDay), modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.height(4.dp))
-                    Text("${h.temp.roundToInt()}°", style = MaterialTheme.typography.labelLarge.merge(Num), color = p.content)
+                    Text(fmt.format(Date(h.time)), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.9f))
+                    Spacer(Modifier.height(6.dp))
+                    WeatherGlyph(h.code, h.isDay, 30.dp)
+                    Spacer(Modifier.height(6.dp))
+                    Text("${h.temp.roundToInt()}°", style = MaterialTheme.typography.titleSmall.merge(Num), color = Color.White)
+                    Text(
+                        "${h.rainChance}%", style = MaterialTheme.typography.labelSmall.merge(Num),
+                        color = if (h.rainChance >= 20) RainBlue else Color.White.copy(alpha = 0.4f),
+                    )
                 }
             }
         }
     }
 }
 
-private fun weatherIcon(code: Int, day: Boolean): ImageVector = when (code) {
-    0, 1 -> if (day) Icons.Rounded.WbSunny else Icons.Rounded.NightsStay
-    2 -> if (day) Icons.Rounded.WbCloudy else Icons.Rounded.NightsStay
-    3, 45, 48 -> Icons.Rounded.Cloud
-    in 51..57 -> Icons.Rounded.Grain
-    in 61..67, in 80..82 -> Icons.Rounded.Umbrella
-    in 71..77, 85, 86 -> Icons.Rounded.AcUnit
-    in 95..99 -> Icons.Rounded.Thunderstorm
-    else -> Icons.Rounded.Cloud
+/** Icono de clima a dos tonos, montado con varias piezas (sol o luna, nube, gotas, rayo, copo). */
+@Composable
+private fun WeatherGlyph(code: Int, day: Boolean, size: Dp) {
+    val sky = if (day) Icons.Rounded.WbSunny else Icons.Rounded.NightsStay
+    val skyTint = if (day) Sun else Moon
+    Box(Modifier.size(size)) {
+        when (code) {
+            0 -> Icon(sky, null, tint = skyTint, modifier = Modifier.fillMaxSize())
+            1, 2 -> {
+                Icon(sky, null, tint = skyTint, modifier = Modifier.size(size * 0.62f).align(Alignment.TopEnd))
+                Icon(Icons.Rounded.Cloud, null, tint = CloudLight, modifier = Modifier.size(size * 0.78f).align(Alignment.BottomStart))
+            }
+            3, 45, 48 -> {
+                Icon(Icons.Rounded.Cloud, null, tint = CloudDark, modifier = Modifier.size(size * 0.62f).align(Alignment.TopEnd))
+                Icon(Icons.Rounded.Cloud, null, tint = CloudLight, modifier = Modifier.size(size * 0.82f).align(Alignment.BottomStart))
+            }
+            in 95..99 -> {
+                Icon(Icons.Rounded.Cloud, null, tint = CloudDark, modifier = Modifier.size(size * 0.86f).align(Alignment.TopCenter))
+                Icon(Icons.Rounded.Bolt, null, tint = Color(0xFFFFB300), modifier = Modifier.size(size * 0.46f).align(Alignment.BottomCenter))
+            }
+            in 71..77, 85, 86 -> {
+                Icon(Icons.Rounded.Cloud, null, tint = CloudLight, modifier = Modifier.size(size * 0.86f).align(Alignment.TopCenter))
+                Icon(Icons.Rounded.AcUnit, null, tint = Color(0xFFBFE6FF), modifier = Modifier.size(size * 0.34f).align(Alignment.BottomCenter))
+            }
+            else -> { // llovizna, lluvia, chubascos
+                if (code in 80..82) Icon(sky, null, tint = skyTint, modifier = Modifier.size(size * 0.5f).align(Alignment.TopEnd))
+                Icon(
+                    Icons.Rounded.Cloud, null, tint = CloudLight,
+                    modifier = Modifier.size(size * 0.84f).align(if (code in 80..82) Alignment.TopStart else Alignment.TopCenter)
+                        .offset(y = -(size * 0.04f)),
+                )
+                Row(Modifier.align(Alignment.BottomCenter), horizontalArrangement = Arrangement.spacedBy(-(size * 0.04f))) {
+                    repeat(if (code in 51..57) 2 else 3) {
+                        Icon(Icons.Rounded.WaterDrop, null, tint = RainBlue, modifier = Modifier.size(size * 0.24f))
+                    }
+                }
+            }
+        }
+    }
 }
 
-private fun weatherTint(code: Int, day: Boolean): Color = when {
-    code <= 2 && day -> Sun
-    code <= 2 -> Color(0xFFC5CAF5)
-    code in 61..67 || code in 80..82 || code in 51..57 -> Color(0xFF8AB4F8)
-    code in 95..99 -> Color(0xFFFFD54F)
-    else -> Color(0xFFDCE3EA)
+/** Color del degradado de la tarjeta según el cielo. */
+private fun skyTint(code: Int, day: Boolean): Color = when {
+    code in 95..99 -> Color(0xFF3F3272)
+    code in 51..67 || code in 80..82 -> Color(0xFF26467A)
+    code in 71..77 || code in 85..86 -> Color(0xFF41607F)
+    code == 3 || code == 45 || code == 48 -> Color(0xFF39475C)
+    !day -> Color(0xFF2E3577)
+    else -> Color(0xFF34589F)
+}
+
+// ── Bolsa ─────────────────────────────────────────────────────────────
+
+/** Lista de acciones: logo, ticker y nombre, gráfica del día con el cierre anterior punteado, precio y variación. */
+@Composable
+private fun FinancePage(quotes: List<Glance.Quote>, p: IslandPalette) {
+    if (quotes.isEmpty()) return Empty(Icons.Rounded.ShowChart, "No quotes", "Add symbols in At a glance settings.", p)
+    Column {
+        quotes.take(4).forEachIndexed { i, q ->
+            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+            val up = q.changePct >= 0
+            val c = if (up) Up else Down
+            Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
+                TickerLogo(q.symbol, 40.dp)
+                Spacer(Modifier.width(Sp.group))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        q.symbol.removePrefix("^"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color.White, maxLines = 1,
+                    )
+                    Text(q.name, style = MaterialTheme.typography.bodySmall, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.width(Sp.iconText))
+                Sparkline(q.closes, q.prevClose.toFloat(), c, Modifier.width(84.dp).height(34.dp))
+                Spacer(Modifier.width(Sp.group))
+                Column(Modifier.widthIn(min = 72.dp), horizontalAlignment = Alignment.End) {
+                    Text(
+                        price(q.price), style = MaterialTheme.typography.titleSmall.merge(Num).copy(fontWeight = FontWeight.SemiBold),
+                        color = Color.White, maxLines = 1,
+                    )
+                    Text(
+                        (if (up) "+" else "−") + String.format(Locale.getDefault(), "%.2f%%", abs(q.changePct)),
+                        style = MaterialTheme.typography.labelLarge.merge(Num), color = c,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun price(v: Double) = if (v >= 1000) String.format(Locale.getDefault(), "%,.0f", v) else String.format(Locale.getDefault(), "%,.2f", v)
+
+/** Logo redondo: un icono para índices, cripto y divisas; para el resto, la inicial sobre un color fijo por símbolo. */
+@Composable
+private fun TickerLogo(symbol: String, size: Dp) {
+    val sym = symbol.uppercase()
+    data class L(val bg: Color, val fg: Color, val icon: ImageVector?)
+    val l = when {
+        sym.startsWith("^") -> L(Color(0xFF26314F), Color.White, Icons.Rounded.ShowChart)
+        sym.startsWith("BTC") -> L(Color(0xFFF7931A), Color.White, Icons.Rounded.CurrencyBitcoin)
+        sym.contains("-USD") || sym.contains("-EUR") -> L(Color(0xFF627EEA), Color.White, null)
+        sym.endsWith("=X") -> L(Color(0xFF1F5E3A), Color.White, Icons.Rounded.CurrencyExchange)
+        else -> {
+            val pal = listOf(
+                Color.White to Color.Black, Color(0xFFE53935) to Color.White, Color(0xFF1E88E5) to Color.White,
+                Color(0xFF2E7D32) to Color.White, Color(0xFF8E24AA) to Color.White, Color(0xFF3949AB) to Color.White,
+                Color(0xFF2F3340) to Color.White, Color(0xFFFFB300) to Color.Black,
+            )
+            val (bg, fg) = pal[Math.floorMod(sym.hashCode(), pal.size)]
+            L(bg, fg, null)
+        }
+    }
+    Box(Modifier.size(size).clip(CircleShape).background(l.bg), contentAlignment = Alignment.Center) {
+        if (l.icon != null) Icon(l.icon, null, tint = l.fg, modifier = Modifier.size(size * 0.55f))
+        else Text(
+            sym.removePrefix("^").take(1), color = l.fg,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+    }
+}
+
+@Composable
+private fun Sparkline(values: List<Float>, base: Float, color: Color, modifier: Modifier) {
+    if (values.size < 2) return Spacer(modifier)
+    Canvas(modifier) {
+        val min = minOf(values.min(), base); val max = maxOf(values.max(), base)
+        val span = (max - min).takeIf { it > 0f } ?: 1f
+        fun y(v: Float) = size.height - (v - min) / span * size.height
+        // Cierre anterior, punteado.
+        drawLine(
+            Color.White.copy(alpha = 0.35f), Offset(0f, y(base)), Offset(size.width, y(base)), 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
+        )
+        val path = Path()
+        values.forEachIndexed { i, v ->
+            val x = size.width * i / (values.size - 1)
+            if (i == 0) path.moveTo(x, y(v)) else path.lineTo(x, y(v))
+        }
+        drawPath(path, color, style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
 }
 
 // ── Deportes ──────────────────────────────────────────────────────────
@@ -320,60 +581,6 @@ private fun sportIcon(sport: String): ImageVector = when (sport) {
     else -> Icons.Rounded.EmojiEvents
 }
 
-// ── Bolsa ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun FinancePage(quotes: List<Glance.Quote>, p: IslandPalette) {
-    if (quotes.isEmpty()) return Empty(Icons.Rounded.ShowChart, "No quotes", "Add symbols in At a glance settings.", p)
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        quotes.take(4).forEach { q ->
-            val up = q.changePct >= 0
-            val c = if (up) Up else Down
-            Row(Modifier.fillMaxWidth().height(37.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(q.symbol.removePrefix("^"), style = MaterialTheme.typography.titleSmall, color = p.content, maxLines = 1)
-                    Text(q.name, style = MaterialTheme.typography.labelSmall, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Sparkline(q.closes, c, Modifier.width(64.dp).height(24.dp))
-                Spacer(Modifier.width(Sp.group))
-                Column(Modifier.width(92.dp), horizontalAlignment = Alignment.End) {
-                    Text(price(q.price), style = MaterialTheme.typography.titleSmall.merge(Num), color = p.content, maxLines = 1)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (up) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown, null, tint = c, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(3.dp))
-                        Text(
-                            (if (up) "+" else "−") + String.format(Locale.getDefault(), "%.2f%%", abs(q.changePct)),
-                            style = MaterialTheme.typography.labelSmall.merge(Num), color = c,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun price(v: Double) = if (v >= 1000) String.format(Locale.getDefault(), "%,.0f", v) else String.format(Locale.getDefault(), "%,.2f", v)
-
-@Composable
-private fun Sparkline(values: List<Float>, color: Color, modifier: Modifier) {
-    if (values.size < 2) return Spacer(modifier)
-    Canvas(modifier) {
-        val min = values.min(); val max = values.max()
-        val span = (max - min).takeIf { it > 0f } ?: 1f
-        val path = Path()
-        values.forEachIndexed { i, v ->
-            val x = size.width * i / (values.size - 1)
-            val y = size.height - (v - min) / span * size.height
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
-        val fill = Path().apply { addPath(path); lineTo(size.width, size.height); lineTo(0f, size.height); close() }
-        drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
-        drawPath(path, color, style = Stroke(1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        val last = Offset(size.width, size.height - (values.last() - min) / span * size.height)
-        drawCircle(color, 2.2.dp.toPx(), last)
-    }
-}
-
 // ── Alertas ───────────────────────────────────────────────────────────
 
 @Composable
@@ -408,7 +615,8 @@ private fun alertIcon(k: Glance.AlertKind): ImageVector = when (k) {
     Glance.AlertKind.COLD -> Icons.Rounded.Thermostat
     Glance.AlertKind.HEAT -> Icons.Rounded.LocalFireDepartment
     Glance.AlertKind.LIVE -> Icons.Rounded.SportsScore
-    Glance.AlertKind.MARKET -> Icons.Rounded.ShowChart
+    Glance.AlertKind.MARKET_UP -> Icons.AutoMirrored.Rounded.TrendingUp
+    Glance.AlertKind.MARKET_DOWN -> Icons.AutoMirrored.Rounded.TrendingDown
 }
 
 private fun alertTint(k: Glance.AlertKind): Color = when (k) {
@@ -418,7 +626,8 @@ private fun alertTint(k: Glance.AlertKind): Color = when (k) {
     Glance.AlertKind.UV -> Sun
     Glance.AlertKind.HEAT -> Color(0xFFFFB68A)
     Glance.AlertKind.LIVE -> Live
-    Glance.AlertKind.MARKET -> Up
+    Glance.AlertKind.MARKET_UP -> Up
+    Glance.AlertKind.MARKET_DOWN -> Down
 }
 
 private fun viewIcon(v: GlanceView): ImageVector = when (v) {

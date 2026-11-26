@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -112,86 +114,80 @@ fun GlanceScreen(onBack: () -> Unit) {
 
         if (s.glanceEnabled) {
             GroupTitle("Views")
-            Group(
-                *GlanceView.entries.map { v ->
-                    @Composable {
-                        SwitchRow(v.label, v in s.glanceViews, icon = viewIcon(v)) { on ->
-                            set { st ->
-                                val next = if (on) st.glanceViews + v else st.glanceViews - v
-                                st.copy(glanceViews = GlanceView.entries.filter { it in next })
-                            }
+            note("Swipe the icon next to the camera to move between the views that are on; tap it to open that view below.")
+            var city by remember { mutableStateOf("") }
+            var busy by remember { mutableStateOf(false) }
+            fun search() {
+                if (city.isBlank() || busy) return
+                busy = true
+                scope.launch {
+                    val r = withContext(Dispatchers.IO) { Glance.searchCity(city) }
+                    busy = false
+                    if (r == null) Toast.makeText(ctx, "City not found (or no internet).", Toast.LENGTH_SHORT).show()
+                    else { set { it.copy(glanceLat = r.second, glanceLon = r.third, glancePlace = r.first) }; city = "" }
+                }
+            }
+            GlanceView.entries.forEach { v ->
+                val on = v in s.glanceViews
+                val toggle = @Composable {
+                    SwitchRow(v.label, on, viewSubtitle(v), viewIcon(v)) { enable ->
+                        set { st ->
+                            val next = if (enable) st.glanceViews + v else st.glanceViews - v
+                            st.copy(glanceViews = GlanceView.entries.filter { it in next })
                         }
-                    }
-                }.toTypedArray(),
-            )
-            note("Swipe sideways on the card to move between them, in this order. Swipe up or down to close it.")
-
-            if (GlanceView.WEATHER in s.glanceViews || GlanceView.ALERTS in s.glanceViews) {
-                GroupTitle("Weather")
-                var city by remember { mutableStateOf("") }
-                var busy by remember { mutableStateOf(false) }
-                fun search() {
-                    if (city.isBlank() || busy) return
-                    busy = true
-                    scope.launch {
-                        val r = withContext(Dispatchers.IO) { Glance.searchCity(city) }
-                        busy = false
-                        if (r == null) Toast.makeText(ctx, "City not found (or no internet).", Toast.LENGTH_SHORT).show()
-                        else { set { it.copy(glanceLat = r.second, glanceLon = r.third, glancePlace = r.first) }; city = "" }
                     }
                 }
-                Group(
-                    {
-                        NavRow(
-                            if (s.glanceLat == null) "No location yet" else s.glancePlace.ifBlank { "Saved location" },
-                            "Use my approximate location", Icons.Rounded.MyLocation,
-                        ) {
-                            val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                            if (granted) useLocation() else permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                        }
-                    },
-                    {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                city, { city = it }, Modifier.weight(1f), singleLine = true,
-                                placeholder = { Text("Search a city") },
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(onSearch = { search() }),
-                            )
-                            TextButton(::search, enabled = city.isNotBlank() && !busy) { Text(if (busy) "…" else "Set") }
-                        }
-                    },
-                    {
-                        SegmentedRow("Units", listOf(false, true), s.glanceFahrenheit, { if (it) "°F" else "°C" }) { f ->
-                            set { it.copy(glanceFahrenheit = f) }
-                        }
-                    },
-                )
-            }
-
-            if (GlanceView.SPORTS in s.glanceViews || GlanceView.ALERTS in s.glanceViews) {
-                GroupTitle("Sports")
-                Group(
-                    *League.entries.map { lg ->
+                // Las opciones de cada vista van justo debajo, solo si está activa.
+                val options: List<@Composable () -> Unit> = if (!on) emptyList() else when (v) {
+                    GlanceView.WEATHER -> listOf(
+                        {
+                            NavRow(
+                                if (s.glanceLat == null) "No location yet" else s.glancePlace.ifBlank { "Saved location" },
+                                "Use my approximate location", Icons.Rounded.MyLocation,
+                            ) {
+                                val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                if (granted) useLocation() else permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            }
+                        },
+                        {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    city, { city = it }, Modifier.weight(1f), singleLine = true,
+                                    placeholder = { Text("Search a city") },
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                    keyboardActions = KeyboardActions(onSearch = { search() }),
+                                )
+                                TextButton(::search, enabled = city.isNotBlank() && !busy) { Text(if (busy) "…" else "Set") }
+                            }
+                        },
+                        {
+                            SegmentedRow("Units", listOf(false, true), s.glanceFahrenheit, { if (it) "°F" else "°C" }) { f ->
+                                set { it.copy(glanceFahrenheit = f) }
+                            }
+                        },
+                    )
+                    GlanceView.SPORTS -> League.entries.map { lg ->
                         @Composable {
-                            SwitchRow(lg.label, lg.path in s.glanceLeagues, icon = sportIcon(lg.sport)) { on ->
-                                set { st -> st.copy(glanceLeagues = if (on) st.glanceLeagues + lg.path else st.glanceLeagues - lg.path) }
+                            SwitchRow(lg.label, lg.path in s.glanceLeagues, icon = sportIcon(lg.sport)) { en ->
+                                set { st -> st.copy(glanceLeagues = if (en) st.glanceLeagues + lg.path else st.glanceLeagues - lg.path) }
                             }
                         }
-                    }.toTypedArray(),
-                )
-                TextSetting(
-                    "Favorite teams", s.glanceTeams, "Real Madrid, Lakers, KC",
-                    "Separated by commas. With teams set, only their games show; live games of your teams also light up the icon. Empty shows every game.",
-                ) { v -> set { it.copy(glanceTeams = v) } }
-            }
-
-            if (GlanceView.FINANCE in s.glanceViews || GlanceView.ALERTS in s.glanceViews) {
-                GroupTitle("Finance")
-                TextSetting(
-                    "Symbols", s.glanceSymbols, "^GSPC, AAPL, BTC-USD, EURUSD=X",
-                    "Up to 4, separated by commas, as Yahoo Finance writes them: ^GSPC is the S&P 500, BTC-USD bitcoin, EURUSD=X euro to dollar. Moves of 3% or more also show in Alerts.",
-                ) { v -> set { it.copy(glanceSymbols = v) } }
+                    } + listOf<@Composable () -> Unit>({
+                        TextSetting(
+                            "Favorite teams", s.glanceTeams, "Real Madrid, Lakers, KC",
+                            "Separated by commas. With teams set, only their games show. Empty shows every game.",
+                        ) { t -> set { it.copy(glanceTeams = t) } }
+                    })
+                    GlanceView.FINANCE -> listOf({
+                        TextSetting(
+                            "Symbols", s.glanceSymbols, "^GSPC, AAPL, BTC-USD, EURUSD=X",
+                            "Up to 4, as Yahoo Finance writes them: ^GSPC is the S&P 500, BTC-USD bitcoin, EURUSD=X euro to dollar.",
+                        ) { t -> set { it.copy(glanceSymbols = t) } }
+                    })
+                    GlanceView.ALERTS -> emptyList()
+                }
+                Group(*(listOf(toggle) + options).toTypedArray())
+                Spacer(Modifier.height(12.dp))
             }
         }
 
@@ -222,23 +218,28 @@ fun GlanceScreen(onBack: () -> Unit) {
 @Composable
 private fun TextSetting(title: String, value: String, hint: String, help: String, onSave: (String) -> Unit) {
     var text by remember(value) { mutableStateOf(value) }
-    Group(
-        {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    text, { text = it }, Modifier.weight(1f), singleLine = true,
-                    label = { Text(title) }, placeholder = { Text(hint) },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onSave(text.trim()) }),
-                )
-                TextButton({ onSave(text.trim()) }, enabled = text.trim() != value) { Text("Save") }
-            }
-        },
-    )
-    Text(
-        help, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                text, { text = it }, Modifier.weight(1f), singleLine = true,
+                label = { Text(title) }, placeholder = { Text(hint) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSave(text.trim()) }),
+            )
+            TextButton({ onSave(text.trim()) }, enabled = text.trim() != value) { Text("Save") }
+        }
+        Text(
+            help, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+private fun viewSubtitle(v: GlanceView) = when (v) {
+    GlanceView.WEATHER -> "Now, high and low, next hours"
+    GlanceView.SPORTS -> "Live scores and upcoming games"
+    GlanceView.FINANCE -> "Your stocks with today's chart"
+    GlanceView.ALERTS -> "Alarm, rain, UV, live games, big moves"
 }
 
 private fun isInstalled(ctx: android.content.Context, pkg: String) =

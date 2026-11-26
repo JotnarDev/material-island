@@ -161,6 +161,11 @@ data class IslandUi(
     /** Tarjeta de At a glance abierta. */
     val glance: Boolean = false,
     val glanceData: dev.jotnar.materialisland.core.Glance.Data = dev.jotnar.materialisland.core.Glance.Data(),
+    /** Vista elegida de At a glance (la que muestra el icono y la que se abre debajo). */
+    val glanceView: dev.jotnar.materialisland.data.GlanceView? = null,
+    /** Hacia dónde se cambió la última vez (1 = siguiente, -1 = anterior), para la animación. */
+    val glanceDir: Int = 1,
+    val glanceCount: Int = 0,
 )
 
 interface IslandCallbacks {
@@ -182,8 +187,8 @@ interface IslandCallbacks {
     fun onBubbleLongPress(item: IslandItem) {}
     fun onBubbleOverflow() {}
     fun onGlanceTap() {}
-    /** Se pasó de vista en la tarjeta de At a glance (reinicia el cierre automático). */
-    fun onGlancePage() {}
+    /** Pasar a la vista siguiente (1) o anterior (-1) de At a glance. */
+    fun onGlanceSwipe(step: Int) {}
 }
 
 fun resolveMode(ui: IslandUi): Mode {
@@ -527,7 +532,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                             Mode.HIDDEN, Mode.REST -> Box(Modifier.size(dims.restD))
                             Mode.COMPACT -> if (item != null) Compact(item, p, dims, s)
                             Mode.WIDE -> if (item != null) Wide(item, p, dims, ui.copiedId == item.id)
-                            Mode.PEEK, Mode.EXPANDED -> if (frame.glance) GlanceCard(s, p, dims, ui.glanceData, cb)
+                            Mode.PEEK, Mode.EXPANDED -> if (frame.glance) GlanceCard(s, p, dims, ui, cb)
                                 else if (item != null) Card(item, p, dims, s, ui, cb, sizeSpec)
                                 else if (ui.shortcuts) ShortcutsCard(s, p, dims, ui.shortcutTick, cb)
                         }
@@ -582,7 +587,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                     exit = scaleOut(tween(150)) + fadeOut(tween(150)),
                 ) {
                     GlanceChip(
-                        ui.glanceData, pillH - 12.dp, s, cb,
+                        ui, pillH - 12.dp, cb,
                         Modifier
                             .graphicsLayer {
                                 val k = bubblesIn.value

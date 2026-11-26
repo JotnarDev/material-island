@@ -80,6 +80,8 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
     private val shortcutTick = MutableStateFlow(0)
     /** Tercer nivel de la música: tarjeta grande con la carátula. Solo vale mientras está expandida. */
     private val fullMedia = MutableStateFlow(false)
+    /** At a glance: índice de la vista elegida y dirección del último cambio. */
+    private val glanceSel = MutableStateFlow(0 to 1)
     private val replyingId = MutableStateFlow<String?>(null)
     private val copiedId = MutableStateFlow<String?>(null)
     private val landscape = MutableStateFlow(isLandscape())
@@ -105,7 +107,15 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         .combine(fullMedia) { u, full -> u.copy(full = full && u.expanded && u.state.primary?.kind == Kind.MEDIA) }
         .combine(shortcutTick) { u, t -> u.copy(shortcutTick = t) }
         .combine(dev.jotnar.materialisland.core.Glance.data) { u, g -> u.copy(glanceData = g) }
-        .combine(SettingsStore.flow) { u, st -> u.copy(glanceOn = st.glanceEnabled, glance = u.glance && st.glanceEnabled) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
+        .combine(combine(SettingsStore.flow, glanceSel, ::Pair)) { u, (st, sel) ->
+            val views = dev.jotnar.materialisland.data.GlanceView.entries.filter { it in st.glanceViews }
+            val on = st.glanceEnabled && views.isNotEmpty()
+            u.copy(
+                glanceOn = on, glance = u.glance && on,
+                glanceView = views.getOrNull(Math.floorMod(sel.first, views.size.coerceAtLeast(1))),
+                glanceDir = sel.second, glanceCount = views.size,
+            )
+        }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
 
     private var collapseJob: Job? = null
 
@@ -394,13 +404,23 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         scheduleCollapse()
     }
 
-    override fun onGlancePage() { Haptics.tick(); scheduleCollapse() }
+    override fun onGlanceSwipe(step: Int) {
+        val n = SettingsStore.current.glanceViews.size
+        if (n < 2) return
+        glanceSel.value = Math.floorMod(glanceSel.value.first + step, n) to step
+        Haptics.tick()
+        if (expandedId.value == GLANCE_ID) scheduleCollapse()
+    }
 
     override fun onSwipe(item: IslandItem?, mode: Mode, dir: Swipe) {
         if (mode == Mode.REST || mode == Mode.HIDDEN) return
-        // At a glance: deslizar en vertical la cierra (en horizontal pasa de vista dentro de la tarjeta).
+        // At a glance: deslizar en vertical la cierra; de lado pasa a la vista siguiente o anterior.
         if (expandedId.value == GLANCE_ID) {
-            if (dir == Swipe.UP || dir == Swipe.DOWN) collapse()
+            when (dir) {
+                Swipe.UP, Swipe.DOWN -> collapse()
+                Swipe.LEFT -> onGlanceSwipe(1)
+                Swipe.RIGHT -> onGlanceSwipe(-1)
+            }
             return
         }
         // La tarjeta de accesos no tiene actividad detrás: deslizar en vertical la cierra.

@@ -51,8 +51,13 @@ object Glance {
         val live get() = state == "in"
         val favorite get() = home.favorite || away.favorite
     }
-    data class Quote(val symbol: String, val name: String, val price: Double, val changePct: Double, val currency: String, val closes: List<Float>)
-    enum class AlertKind { ALARM, RAIN, SNOW, UV, COLD, HEAT, LIVE, MARKET }
+    data class Quote(
+        val symbol: String, val name: String, val price: Double, val changePct: Double, val currency: String,
+        val closes: List<Float>, val prevClose: Double,
+    ) {
+        val change get() = price - prevClose
+    }
+    enum class AlertKind { ALARM, RAIN, SNOW, UV, COLD, HEAT, LIVE, MARKET_UP, MARKET_DOWN }
     data class Alert(val kind: AlertKind, val title: String, val text: String)
 
     data class Data(
@@ -288,7 +293,7 @@ object Glance {
                     .mapNotNull { i -> closesArr.optDouble(i).takeIf { !it.isNaN() }?.toFloat() }
                 Quote(
                     sym, m.optString("shortName").ifBlank { sym }, price,
-                    if (prev != 0.0) (price - prev) / prev * 100 else 0.0, m.optString("currency"), closes,
+                    if (prev != 0.0) (price - prev) / prev * 100 else 0.0, m.optString("currency"), closes, prev,
                 )
             }.onFailure { Log.w(TAG, "quote $sym", it) }.getOrNull()
         }
@@ -321,7 +326,7 @@ object Glance {
             if (w.high >= hot) add(Alert(AlertKind.HEAT, "Hot day", "High of ${w.high.toInt()}$deg"))
         }
         d.quotes.filter { abs(it.changePct) >= 3 }.forEach { q ->
-            add(Alert(AlertKind.MARKET, "${q.symbol} ${if (q.changePct > 0) "up" else "down"} ${"%.1f".format(abs(q.changePct))}%", q.name))
+            add(Alert(if (q.changePct > 0) AlertKind.MARKET_UP else AlertKind.MARKET_DOWN, "${q.symbol} ${if (q.changePct > 0) "up" else "down"} ${"%.1f".format(abs(q.changePct))}%", q.name))
         }
     }
 
