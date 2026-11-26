@@ -3,6 +3,10 @@ package dev.jotnar.materialisland.ui
 import android.Manifest
 import android.content.ComponentName
 import android.content.Context
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Lock
+import android.content.pm.PackageInstaller
+import android.os.Build
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -130,17 +134,57 @@ private fun App() {
 
 // ── Permisos ──────────────────────────────────────────────────────────
 
-private data class Perms(val notifications: Boolean, val accessibility: Boolean, val battery: Boolean, val bluetooth: Boolean)
+private data class Perms(
+    val notifications: Boolean,
+    val accessibility: Boolean,
+    val battery: Boolean,
+    val bluetooth: Boolean,
+    /** Android 13+ bloquea accesibilidad y lectura de notificaciones en apps instaladas desde una APK. */
+    val restricted: Boolean,
+)
+
+private val isXiaomi = Build.MANUFACTURER.lowercase() in setOf("xiaomi", "redmi", "poco")
+
+/**
+ * ¿Está activo el bloqueo de "ajuste restringido"? Se lee la operación oculta
+ * android:access_restricted_settings; si el sistema no deja leerla, se supone bloqueada cuando
+ * la app no vino de una tienda (lo que hace Android para decidir si la restringe).
+ */
+private fun restrictedSettingsBlocked(ctx: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+    val mode = runCatching {
+        ctx.getSystemService(android.app.AppOpsManager::class.java)
+            .unsafeCheckOpNoThrow("android:access_restricted_settings", android.os.Process.myUid(), ctx.packageName)
+    }.getOrNull()
+    if (mode != null) return mode != android.app.AppOpsManager.MODE_ALLOWED && mode != android.app.AppOpsManager.MODE_DEFAULT
+    val installer = runCatching { ctx.packageManager.getInstallSourceInfo(ctx.packageName).packageSource }.getOrNull()
+    return installer != PackageInstaller.PACKAGE_SOURCE_STORE
+}
+
+/** Abre la pantalla de "Inicio automático" de MIUI/HyperOS; si no existe, la info de la app. */
+private fun openXiaomiAutostart(ctx: Context) {
+    val autostart = Intent().setComponent(
+        ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { ctx.startActivity(autostart) }.onFailure { openAppInfo(ctx) }
+}
+
+private fun openAppInfo(ctx: Context) = ctx.startActivity(
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")),
+)
 
 private fun readPerms(ctx: Context): Perms {
     val listeners = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners").orEmpty()
     val a11y = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
     val pm = ctx.getSystemService(PowerManager::class.java)
+    val notifications = listeners.contains(ctx.packageName + "/")
+    val accessibility = a11y.contains(ctx.packageName + "/")
     return Perms(
-        notifications = listeners.contains(ctx.packageName + "/"),
-        accessibility = a11y.contains(ctx.packageName + "/"),
+        notifications = notifications,
+        accessibility = accessibility,
         battery = pm.isIgnoringBatteryOptimizations(ctx.packageName),
         bluetooth = ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED,
+        restricted = !(notifications && accessibility) && restrictedSettingsBlocked(ctx),
     )
 }
 
@@ -167,6 +211,10 @@ private fun HomeScreen(go: (Screen) -> Unit) {
         val allOk = perms.notifications && perms.accessibility
         if (!allOk || !perms.battery || !perms.bluetooth) {
             GroupTitle("Permissions")
+            if (perms.restricted) {
+                RestrictedCard { openAppInfo(ctx) }
+                Spacer(Modifier.height(12.dp))
+            }
             Group(
                 {
                     PermRow(
@@ -203,6 +251,12 @@ private fun HomeScreen(go: (Screen) -> Unit) {
                         Icons.Rounded.Bluetooth, perms.bluetooth,
                     ) { btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT) }
                 },
+                *(if (isXiaomi) arrayOf<@Composable () -> Unit>({
+                    PermRow(
+                        "Autostart (Xiaomi)", "HyperOS closes background apps unless Autostart is on",
+                        Icons.Rounded.RestartAlt, ok = false, action = "Open",
+                    ) { openXiaomiAutostart(ctx) }
+                }) else emptyArray()),
             )
         }
 
@@ -228,7 +282,14 @@ private fun HomeScreen(go: (Screen) -> Unit) {
 }
 
 @Composable
-private fun PermRow(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, ok: Boolean, onClick: () -> Unit) {
+private fun PermRow(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    ok: Boolean,
+    action: String = "Turn on",
+    onClick: () -> Unit,
+) {
     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(40.dp).clip(RoundedCornerShape(if (ok) 12.dp else 20.dp))
@@ -247,7 +308,30 @@ private fun PermRow(title: String, subtitle: String, icon: androidx.compose.ui.g
         }
         if (!ok) {
             Spacer(Modifier.width(8.dp))
-            Button(onClick = onClick) { Text("Turn on") }
+            Button(onClick = onClick) { Text(action) }
+        }
+    }
+}
+
+/** Aviso cuando Android bloquea los interruptores de accesibilidad / notificaciones. */
+@Composable
+private fun RestrictedCard(onUnblock: () -> Unit) {
+    Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Lock, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                Spacer(Modifier.width(12.dp))
+                Text("Android is blocking setup", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Apps installed from an APK can't get accessibility or notification access until you allow it. " +
+                    "Tap Unblock, then the ⋮ menu (top right) → Allow restricted settings. " +
+                    if (isXiaomi) "On Xiaomi, try turning the switch on once first so the option appears." else "",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = onUnblock, modifier = Modifier.align(Alignment.End)) { Text("Unblock") }
         }
     }
 }

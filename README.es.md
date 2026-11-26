@@ -65,6 +65,18 @@ Descarga `material-island-<versión>.apk` desde la [última release](https://git
 e instálala. En Android 13+, si no deja activar la accesibilidad: **Ajustes → Apps → Material Island → ⋮ →
 Permitir ajustes restringidos**, o usa los comandos ADB de abajo.
 
+### Xiaomi, Redmi y POCO (HyperOS / MIUI)
+
+1. **Ajustes restringidos.** Si el interruptor de accesibilidad sale gris, intenta activarlo una vez. Después ve a
+   **Ajustes → Apps → Administrar apps → Material Island → ⋮ → Permitir ajustes restringidos** y vuelve a activarlo.
+2. **Accesibilidad:** está en **Ajustes → Ajustes adicionales → Accesibilidad → Apps descargadas**.
+3. **Inicio automático:** actívalo en la info de la app. Si no, HyperOS cierra la isla al rato.
+4. **Ahorro de batería:** ponlo en **Sin restricciones**, en la misma pantalla.
+5. **ADB en Xiaomi:** para usar los comandos de abajo, activa **Opciones de desarrollador → Depuración USB (ajustes de
+   seguridad)**. Pide iniciar sesión con la cuenta Mi y tener una SIM puesta.
+
+La app muestra un aviso con accesos directos cuando detecta estos bloqueos.
+
 ## Compilar e instalar
 
 Requisitos: JDK 17, Android SDK con la plataforma `android-37.2`.

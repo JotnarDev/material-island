@@ -89,6 +89,20 @@ And also:
 
 Requires Android 12 or newer. A phone with a centred hole-punch camera looks best.
 
+### Xiaomi, Redmi and POCO (HyperOS / MIUI)
+
+HyperOS adds a few extra locks. The app shows a warning card and shortcuts for each of them, but here is the full list:
+
+1. **Restricted settings.** If the accessibility switch is greyed out, try turning it on once. Then go to
+   **Settings → Apps → Manage apps → Material Island → ⋮ → Allow restricted settings** and turn it on again.
+2. **Accessibility** lives under **Settings → Additional settings → Accessibility → Downloaded apps**.
+3. **Autostart.** Go to **Settings → Apps → Manage apps → Material Island** and turn on **Autostart**.
+   Without it, HyperOS kills the island after a while.
+4. **Battery saver.** On the same screen, set **Battery saver → No restrictions**.
+5. **ADB on Xiaomi** can't change secure settings or grant permissions by default. To use the ADB commands below,
+   enable **Developer options → USB debugging (Security settings)**. Xiaomi asks you to sign in with a Mi account
+   and have a SIM card inserted. Without it, only `cmd notification allow_listener` and `appops set` work.
+
 ### Build from source
 
 You need JDK 17 and the Android SDK with the `android-37.2` platform.
