@@ -118,7 +118,15 @@ object Demo {
                 ),
             )
             Type.CHARGING -> IslandStore.show(
-                IslandItem(id = "sys:CHARGING", kind = Kind.CHARGING, title = "Charging", value = "78%", compactText = "on", durationMs = 3000),
+                IslandItem(
+                    id = "sys:CHARGING", kind = Kind.CHARGING, title = "Fast charging", value = "78%", compactText = "on",
+                    durationMs = 4000,
+                    charge = dev.jotnar.materialisland.model.ChargeInfo(
+                        level = 78, charging = true, plug = dev.jotnar.materialisland.model.ChargeInfo.Plug.WIRED,
+                        speed = dev.jotnar.materialisland.model.ChargeInfo.Speed.FAST, watts = 18.4f,
+                        fullInMs = 38 * 60_000L, tempC = 31.5f, demo = true,
+                    ),
+                ),
             )
             Type.BLUETOOTH -> IslandStore.show(
                 IslandItem(id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = "Pixel Buds Pro 2", value = "Connected", compactText = "on", durationMs = 3000),

@@ -326,7 +326,12 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         when (mode) {
             Mode.HIDDEN -> Unit
             Mode.REST -> Actions.idle(service, service, s.idleTap)
-            Mode.WIDE -> if (item?.otp != null) copyOtp(item) else IslandStore.dismissTransient(item?.id)
+            Mode.WIDE -> when {
+                item?.otp != null -> copyOtp(item)
+                // Al tocar la píldora de carga se abre la tarjeta con el detalle.
+                item != null && item.isExpandableCharge() -> { IslandStore.hold(true); expand(item.id) }
+                else -> IslandStore.dismissTransient(item?.id)
+            }
             Mode.PEEK -> if (item != null) {
                 if (expandedId.value == item.id) openApp(item) else {
                     IslandStore.hold(true); expand(item.id)
@@ -368,7 +373,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
                     else -> Unit
                 }
                 Mode.PEEK -> if (expandedId.value == item.id) { if (!swipeDown) collapse() } else { IslandStore.hold(true); expand(item.id) }
-                Mode.WIDE -> IslandStore.dismissTransient(item.id)
+                Mode.WIDE -> if (item.isExpandableCharge()) { IslandStore.hold(true); expand(item.id) } else IslandStore.dismissTransient(item.id)
                 else -> Unit
             }
             GestureAction.OPEN_APP -> openApp(item)
@@ -503,3 +508,5 @@ private class OverlayOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegi
         viewModelStore.clear()
     }
 }
+
+private fun IslandItem.isExpandableCharge() = kind == Kind.CHARGING && compactText == "on" && charge != null

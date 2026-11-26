@@ -69,6 +69,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.jotnar.materialisland.model.ChargeInfo
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -177,6 +179,7 @@ fun resolveMode(ui: IslandUi): Mode {
         ui.hidden -> Mode.HIDDEN
         p == null -> Mode.REST
         p.kind == Kind.NOTIFICATION -> Mode.PEEK
+        ui.expanded && p.kind == Kind.CHARGING -> Mode.EXPANDED
         !p.kind.persistent -> Mode.WIDE
         ui.expanded -> Mode.EXPANDED
         else -> Mode.COMPACT
@@ -768,6 +771,7 @@ private fun CompactRight(item: IslandItem, p: IslandPalette, size: Dp) {
 
 @Composable
 private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
+    if (item.kind == Kind.CHARGING && item.charge != null) { ChargingPill(item, item.charge, p, d); return }
     val color = when (item.kind) {
         Kind.CHARGING -> if (item.compactText == "off") p.accent else SoftGreen
         Kind.BATTERY -> SoftRed
@@ -804,6 +808,182 @@ private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
     }
 }
 
+// ── Carga ────────────────────────────────────────────────────────────
+
+private val ChargeGreen = Color(0xFF6DD58C)
+
+/** Estado de carga en vivo: la demo usa sus datos fijos, lo real se relee cada 2 s mientras se ve. */
+@Composable
+private fun rememberCharge(initial: ChargeInfo): ChargeInfo {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val live by androidx.compose.runtime.produceState(initial, initial.demo) {
+        if (initial.demo) return@produceState
+        while (true) {
+            value = dev.jotnar.materialisland.core.Battery.read(ctx); delay(2000)
+        }
+    }
+    return live
+}
+
+/**
+ * Anillo ondulado de Material 3 Expressive que se llena hasta el nivel, con el rayo latiendo dentro
+ * y una onda que sale del centro al conectar.
+ */
+@Composable
+private fun ChargeRing(level: Int, charging: Boolean, color: Color, track: Color, size: Dp, iconSize: Dp, ripple: Boolean) {
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(level) { fill.animateTo(level / 100f, spring(dampingRatio = 0.8f, stiffness = 60f)) }
+    val pulse = if (charging) {
+        val t = rememberInfiniteTransition(label = "bolt")
+        t.animateFloat(0.86f, 1.06f, infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "s").value
+    } else 1f
+    val wave = remember { Animatable(0f) }
+    LaunchedEffect(ripple) {
+        if (!ripple) return@LaunchedEffect
+        repeat(2) { wave.snapTo(0f); wave.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
+    }
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        if (ripple) Box(
+            Modifier.size(size).drawBehind {
+                val k = wave.value
+                if (k in 0.001f..0.999f) drawCircle(color.copy(alpha = 0.45f * (1f - k)), radius = this.size.minDimension / 2 * (0.6f + 1.1f * k))
+            },
+        )
+        CircularWavyProgressIndicator(
+            progress = { fill.value }, modifier = Modifier.size(size),
+            color = color, trackColor = track,
+            stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = with(androidx.compose.ui.platform.LocalDensity.current) { (size / 12).toPx() }, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+            trackStroke = androidx.compose.ui.graphics.drawscope.Stroke(width = with(androidx.compose.ui.platform.LocalDensity.current) { (size / 12).toPx() }, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+            amplitude = { if (charging) 1f else 0f },
+        )
+        Icon(
+            Icons.Rounded.Bolt, null, tint = color,
+            modifier = Modifier.size(iconSize).graphicsLayer { scaleX = pulse; scaleY = pulse },
+        )
+    }
+}
+
+/** Porcentaje que cuenta desde 0 hasta el nivel. */
+@Composable
+private fun countUp(level: Int): Int {
+    val a = remember { Animatable(0f) }
+    LaunchedEffect(level) { a.animateTo(level.toFloat(), tween(1100, easing = FastOutSlowInEasing)) }
+    return a.value.roundToInt()
+}
+
+/** Primer estado: píldora con anillo, título y porcentaje, y un barrido de luz al conectar. */
+@Composable
+private fun ChargingPill(item: IslandItem, c: ChargeInfo, p: IslandPalette, d: Dims) {
+    val on = item.compactText == "on"
+    val color = if (on) ChargeGreen else p.variant
+    val sweep = remember { Animatable(0f) }
+    LaunchedEffect(on) { if (on) sweep.animateTo(1f, tween(1300, delayMillis = 150, easing = FastOutSlowInEasing)) }
+    Row(
+        Modifier.width(d.wideW).height(d.pillH)
+            .drawBehind {
+                val k = sweep.value
+                if (on && k in 0.001f..0.999f) {
+                    val band = this.size.width * 0.45f
+                    val x = -band + (this.size.width + band) * k
+                    drawRect(
+                        Brush.horizontalGradient(
+                            0f to Color.Transparent, 0.5f to ChargeGreen.copy(alpha = 0.28f), 1f to Color.Transparent,
+                            startX = x, endX = x + band,
+                        ),
+                    )
+                }
+            }
+            .padding(horizontal = d.edgePad),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            ChargeRing(c.level, on, color, color.copy(alpha = 0.22f), d.icon, d.icon * 0.55f, ripple = on)
+            Spacer(Modifier.width(Sp.iconText))
+            Text(
+                if (on) "Charging" else item.title, style = MaterialTheme.typography.labelLarge, color = p.content,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.width(d.cameraW))
+        Row(Modifier.weight(1f).padding(end = Sp.iconText), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            if (on && c.speed == ChargeInfo.Speed.FAST) {
+                Text(
+                    "FAST", color = ChargeGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(ChargeGreen.copy(alpha = 0.18f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                "${if (on) countUp(c.level) else c.level}%", color = color, maxLines = 1,
+                style = MaterialTheme.typography.titleSmall.merge(Tabular).copy(fontWeight = FontWeight.Bold),
+            )
+        }
+    }
+}
+
+private fun formatFullIn(c: ChargeInfo): String = when {
+    c.level >= 100 -> "Fully charged"
+    !c.charging -> "Not charging"
+    c.fullInMs <= 0 -> "Estimating time to full…"
+    else -> {
+        val min = ((c.fullInMs + 59_999) / 60_000).toInt()
+        val t = if (min >= 60) "${min / 60} h ${min % 60} min" else "$min min"
+        "Full in $t"
+    }
+}
+
+/** Dato pequeño de la tarjeta de carga: ícono + texto en una pastilla de 40. */
+@Composable
+private fun ChargeChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, p: IslandPalette, modifier: Modifier) {
+    Row(
+        modifier.height(Sp.action).clip(RoundedCornerShape(Sp.action / 2)).background(p.accentContainer.copy(alpha = 0.45f))
+            .padding(horizontal = Sp.group),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, null, tint = p.content, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(Sp.iconText / 2 + 2.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, color = p.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Segundo estado: nivel grande, tiempo hasta el 100 %, barra y datos del cargador. */
+@Composable
+private fun ChargingCard(item: IslandItem, p: IslandPalette) {
+    val c = rememberCharge(item.charge ?: return)
+    val color = if (c.charging) ChargeGreen else p.variant
+    Column(Modifier.fillMaxWidth().padding(Sp.edge)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ChargeRing(c.level, c.charging, color, color.copy(alpha = 0.2f), Sp.banner, 34.dp, ripple = false)
+            Spacer(Modifier.width(Sp.edge))
+            Column(Modifier.weight(1f)) {
+                Caption(if (c.charging) c.speed.label else "Not charging", color)
+                Spacer(Modifier.height(Sp.lines))
+                Text(
+                    "${c.level}%", color = p.content,
+                    style = MaterialTheme.typography.displaySmall.merge(Tabular).copy(fontWeight = FontWeight.Medium),
+                )
+                Spacer(Modifier.height(Sp.lines))
+                Text(formatFullIn(c), style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 1)
+            }
+        }
+        Spacer(Modifier.height(Sp.edge))
+        WavyProgress(c.level / 100f, animate = c.charging, color = color, track = color.copy(alpha = 0.2f))
+        Spacer(Modifier.height(Sp.edge))
+        Row(horizontalArrangement = Arrangement.spacedBy(Sp.iconText)) {
+            val plugIcon = when (c.plug) {
+                ChargeInfo.Plug.WIRELESS -> Icons.Rounded.Waves
+                ChargeInfo.Plug.DOCK -> Icons.Rounded.Dock
+                ChargeInfo.Plug.NONE -> Icons.Rounded.PowerOff
+                else -> Icons.Rounded.Cable
+            }
+            ChargeChip(plugIcon, c.plug.label, p, Modifier.weight(1f))
+            ChargeChip(Icons.Rounded.Bolt, c.watts?.let { "%.1f W".format(it) } ?: c.speed.label.substringBefore(" "), p, Modifier.weight(1f))
+            c.tempC?.let { ChargeChip(Icons.Rounded.Thermostat, "%.0f °C".format(it), p, Modifier.weight(1f)) }
+        }
+    }
+}
+
 // ── Tarjeta expandida / aviso ─────────────────────────────────────────
 
 @Composable
@@ -816,6 +996,7 @@ private fun Card(
             // Llamadas y mensajes son banners: la etiqueta de la app va encima del nombre, sin encabezado.
             Kind.CALL -> CallBody(item, p, cb)
             Kind.NOTIFICATION -> NotificationBody(item, p, ui, cb)
+            Kind.CHARGING -> ChargingCard(item, p)
             Kind.MEDIA -> androidx.compose.animation.AnimatedContent(
                 targetState = ui.full,
                 transitionSpec = {

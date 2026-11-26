@@ -91,6 +91,8 @@ data class IslandItem(
     val actions: List<IslandAction> = emptyList(),
     val contentIntent: PendingIntent? = null,
     val media: MediaInfo? = null,
+    /** Detalle de la carga (solo Kind.CHARGING). */
+    val charge: ChargeInfo? = null,
     /** Para eventos del sistema: valor a la derecha (p. ej. "78%"). */
     val value: String? = null,
     /** Abrir expandida automáticamente (llamada entrante). */

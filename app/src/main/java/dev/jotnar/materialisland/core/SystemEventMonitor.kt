@@ -55,11 +55,26 @@ class SystemEventMonitor(private val ctx: Context) {
         )
         when (intent.action) {
             Intent.ACTION_POWER_CONNECTED -> if (s.charging) {
-                val lvl = batteryLevel()
-                show(Kind.CHARGING, "Charging", "$lvl%", key = "on")
+                fun charging(info: dev.jotnar.materialisland.model.ChargeInfo) = IslandStore.show(
+                    IslandItem(
+                        id = "sys:CHARGING", kind = Kind.CHARGING, title = info.speed.label, value = "${info.level}%",
+                        compactText = "on", durationMs = dur, charge = info,
+                    ),
+                )
+                charging(Battery.read(ctx))
+                // El cargador tarda un momento en negociar la potencia: se actualiza para saber si es rápida.
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    val cur = IslandStore.state.value.transient
+                    if (cur?.id == "sys:CHARGING" && cur.compactText == "on") charging(Battery.read(ctx))
+                }, 1800)
             }
             Intent.ACTION_POWER_DISCONNECTED -> if (s.charging) {
-                show(Kind.CHARGING, "Disconnected", "${batteryLevel()}%", key = "off")
+                IslandStore.show(
+                    IslandItem(
+                        id = "sys:CHARGING", kind = Kind.CHARGING, title = "Disconnected", value = "${batteryLevel()}%",
+                        compactText = "off", durationMs = dur, charge = Battery.read(ctx),
+                    ),
+                )
             }
             Intent.ACTION_BATTERY_LOW -> if (s.lowBattery) show(Kind.BATTERY, "Low battery", "${batteryLevel()}%")
             AudioManager.RINGER_MODE_CHANGED_ACTION -> if (s.ringer) {
