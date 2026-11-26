@@ -345,9 +345,13 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     // Burbujas de mensajes en el estilo gota: 0 = en su sitio, 1 = guardadas dentro de la cámara.
     // Se guardan antes de que la gota se mueva y vuelven a salir cuando la animación termina.
     val bubblesIn = remember { Animatable(0f) }
-    val hasUnread = ui.unread.isNotEmpty()
+    // Lo que va a los lados de la cámara: burbujas (izquierda) y At a glance (derecha).
+    val hasUnread = ui.unread.isNotEmpty() || ui.glanceOn
     suspend fun stowBubbles() {
         if (!hasUnread) { bubblesIn.snapTo(1f); return }
+        // Entre reposo y píldora siguen visibles junto a la cámara: no hace falta guardarlos.
+        val sideMode = { m: Mode -> m == Mode.REST || m == Mode.COMPACT }
+        if (sideMode(mode) && sideMode(targetMode)) return
         val visible = mode == Mode.REST || mode == Mode.COMPACT
         if (visible) bubblesIn.animateTo(1f, tween((200 / s.speed).toInt(), easing = FastOutSlowInEasing))
         else bubblesIn.snapTo(1f)
@@ -574,7 +578,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
             {
                 AnimatedVisibility(
                     visible = showGlance,
-                    enter = scaleIn(spring(0.55f, 450f), transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)) + fadeIn(),
+                    enter = scaleIn(spring(0.55f, 450f), transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)) + fadeIn(),
                     exit = scaleOut(tween(150)) + fadeOut(tween(150)),
                 ) {
                     GlanceChip(
@@ -584,7 +588,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                                 val k = bubblesIn.value
                                 scaleX = 1f - 0.8f * k; scaleY = 1f - 0.8f * k
                                 this.alpha = (1f - k * k).coerceIn(0f, 1f)
-                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                             }
                             .onGloballyPositioned { glanceRect = it.boundsInWindow() },
                     )
@@ -616,24 +620,25 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 val x = (cx - main.width / 2).coerceIn(0, (constraints.maxWidth - main.width).coerceAtLeast(0))
                 main.place(x, topPx)
                 sat?.place(x + main.width + gapPx, topPx + (pillH.roundToPx() - sat.height) / 2)
-                // Burbujas a la izquierda, centradas con la cámara.
-                val centerY = if (drop) topPx + main.height / 2 else (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
-                // Sitio normal: a la izquierda de la isla. Guardadas: su borde derecho en el centro de la cámara.
+                // Burbujas a la izquierda y At a glance a la derecha, centrados con la cámara.
+                // Morph: junto a la isla. Gota: siempre junto a la cámara (la píldora cae debajo, ellos no se mueven).
+                // k: 0 = en su sitio, 1 = guardados dentro de la cámara (solo en el estilo gota).
                 val k = if (drop) bubblesIn.value else 0f
                 val camY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
-                var leftEdge = x
-                fun placeLeft(pl: androidx.compose.ui.layout.Placeable) {
-                    val bx = leftEdge - gapPx - pl.width
-                    val by = centerY - pl.height / 2
-                    pl.place(
-                        (bx + (cx - pl.width - bx) * k).roundToInt(),
-                        (by + (camY - pl.height / 2 - by) * k).roundToInt(),
-                    )
-                    leftEdge = bx
+                val camR = (dims.restD / 2).roundToPx()
+                fun placeSide(pl: androidx.compose.ui.layout.Placeable, px: Int, stowX: Int) {
+                    val py = camY - pl.height / 2
+                    pl.place((px + (stowX - px) * k).roundToInt(), py)
                 }
-                // Burbujas pegadas a la isla y, más a la izquierda, el icono de At a glance.
-                if (bub != null && bub.width > 0) placeLeft(bub)
-                if (gl != null) placeLeft(gl)
+                if (bub != null && bub.width > 0) {
+                    val bx = (if (drop) cx - camR else x) - gapPx - bub.width
+                    placeSide(bub, bx, cx - bub.width)
+                }
+                if (gl != null && gl.width > 0) {
+                    val satW = if (!drop && sat != null && sat.width > 0) sat.width + gapPx else 0
+                    val gx = (if (drop) cx + camR else x + main.width + satW) + gapPx
+                    placeSide(gl, gx, cx)
+                }
             }
         }
     }
