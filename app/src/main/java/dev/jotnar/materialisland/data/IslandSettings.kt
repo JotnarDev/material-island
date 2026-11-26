@@ -194,6 +194,9 @@ data class IslandSettings(
     /** Accesos de la tarjeta, en el orden en que se muestran. */
     val shortcuts: List<IdleAction> = IdleAction.defaultShortcuts,
 
+    /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). */
+    val autoUpdateCheck: Boolean = true,
+
     // ── At a glance (lo único que usa internet) ──────────────────────
     val glanceEnabled: Boolean = false,
     val glanceViews: List<GlanceView> = GlanceView.entries,

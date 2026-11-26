@@ -209,6 +209,17 @@ private fun HomeScreen(go: (Screen) -> Unit) {
         Spacer(Modifier.height(12.dp))
         DemoChips()
 
+        // Versión nueva en GitHub: se mira una vez al abrir la app (si está activado).
+        val auto = dev.jotnar.materialisland.data.SettingsStore.flow.collectAsStateWithLifecycle().value.autoUpdateCheck
+        androidx.compose.runtime.LaunchedEffect(auto) { if (auto) dev.jotnar.materialisland.core.Updater.autoCheck(ctx) }
+        val upd by dev.jotnar.materialisland.core.Updater.state.collectAsStateWithLifecycle()
+        if (upd is dev.jotnar.materialisland.core.Updater.State.Available || upd is dev.jotnar.materialisland.core.Updater.State.Downloading ||
+            upd is dev.jotnar.materialisland.core.Updater.State.Installing || upd is dev.jotnar.materialisland.core.Updater.State.Failed
+        ) {
+            Spacer(Modifier.height(12.dp))
+            UpdateCard(always = false)
+        }
+
         val allOk = perms.notifications && perms.accessibility
         if (!allOk || !perms.battery || !perms.bluetooth) {
             GroupTitle("Permissions")

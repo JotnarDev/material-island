@@ -4,6 +4,8 @@
     <!-- Internet solo para At a glance (clima, marcadores, bolsa), y solo si el usuario lo activa. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Actualizar desde la propia app (APK de las releases de GitHub). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Opcional: "usar mi ubicación aproximada" para el clima. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -28,6 +30,8 @@
         android:label="@string/app_name"
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.MaterialIsland">
+
+        <receiver android:name=".core.InstallResultReceiver" android:exported="false" />
 
         <activity
             android:name=".ui.MainActivity"

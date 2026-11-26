@@ -9,7 +9,8 @@ Material 3 Expressive. Hecha para el Pixel 10 Pro (Android 17), funciona en cual
 
 Nada de lo que muestra la isla sale del teléfono. Solo **At a glance** usa internet, y solo si lo activas.
 Es un icono a la izquierda de la cámara que abre una tarjeta deslizable con el clima (Open-Meteo), los marcadores en vivo
-(ESPN), la bolsa (Yahoo Finance) y las alertas. Sin cuenta y sin rastreo. Sin conexión, solo esa tarjeta se pausa. En Pixel,
+(ESPN), la bolsa (Yahoo Finance) y las alertas. Sin cuenta y sin rastreo. Sin conexión, solo esa tarjeta se pausa. La app también puede mirar en GitHub si hay versión nueva al abrirla
+y actualizarse sola (se puede apagar en About). En Pixel,
 un botón te lleva al ajuste del launcher para encender o apagar el At a glance de Google.
 
 ## En movimiento

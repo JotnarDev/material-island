@@ -33,7 +33,8 @@ made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
 Nothing you see in the island ever leaves the phone. The only part that goes online is **At a glance**, and only if
 you turn it on. It is an icon to the left of the camera that opens a card you can swipe through: weather from
 Open-Meteo, live scores from ESPN, quotes from Yahoo Finance, and alerts. No account and no tracking. If you're offline,
-only that card pauses and the rest of the island keeps working. On a Pixel, one button takes you to the launcher setting
+only that card pauses and the rest of the island keeps working. The app can also check GitHub for a new version
+when you open it and update itself (you can turn that off in About). On a Pixel, one button takes you to the launcher setting
 where you can turn Google's own At a glance on or off.
 
 ## See it in motion

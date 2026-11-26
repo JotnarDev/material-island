@@ -423,15 +423,24 @@ fun AboutScreen(onBack: () -> Unit) {
     SettingsScaffold("About", onBack) {
         Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                Text("Material Island 1.0", style = MaterialTheme.typography.headlineSmall)
+                Text("Material Island", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.\n\n" +
-                        "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, with no account or tracking.",
+                        "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, and the app can check GitHub for new versions. No account, no tracking.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
+        GroupTitle("Updates")
+        dev.jotnar.materialisland.ui.UpdateCard(always = true)
+        Spacer(Modifier.height(12.dp))
+        val st = settings()
+        Group({
+            SwitchRow("Check when opening the app", st.autoUpdateCheck, "One request to GitHub, nothing about you is sent") { v ->
+                set { it.copy(autoUpdateCheck = v) }
+            }
+        })
         GroupTitle("Ideas borrowed from")
         Group(
             { Credit("Expressive Cutout", "Accessibility window, partial touch region, Expressive style") },
