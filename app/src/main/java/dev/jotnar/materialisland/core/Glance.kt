@@ -53,7 +53,7 @@ object Glance {
     }
     data class Quote(
         val symbol: String, val name: String, val price: Double, val changePct: Double, val currency: String,
-        val closes: List<Float>, val prevClose: Double,
+        val closes: List<Float>, val prevClose: Double, val logo: Bitmap? = null,
     ) {
         val change get() = price - prevClose
     }
@@ -149,7 +149,7 @@ object Glance {
         if (GlanceView.FINANCE in views || GlanceView.ALERTS in views) {
             val every = if (cardOpen) 2 * 60_000L else 15 * 60_000L
             if (now - financeAt > every - 5_000) {
-                fetchQuotes(s).takeIf { it.isNotEmpty() }?.let { d = d.copy(quotes = it) }; financeAt = now
+                fetchQuotes(ctx, s).takeIf { it.isNotEmpty() }?.let { d = d.copy(quotes = it) }; financeAt = now
             }
         } else d = d.copy(quotes = emptyList())
 
@@ -279,7 +279,74 @@ object Glance {
 
     // ── Bolsa ───────────────────────────────────────────────────────────
 
-    private fun fetchQuotes(s: IslandSettings): List<Quote> =
+    /** Dominios de empresas cuyo nombre no lleva a su web (para el logo). El resto se deduce del nombre. */
+    private val domains = mapOf(
+        "GOOGL" to "google.com", "GOOG" to "google.com", "META" to "meta.com", "BRK-B" to "berkshirehathaway.com",
+        "BRK-A" to "berkshirehathaway.com", "AMD" to "amd.com", "DIS" to "disney.com", "KO" to "coca-cola.com",
+        "PEP" to "pepsico.com", "JPM" to "jpmorganchase.com", "BAC" to "bankofamerica.com", "WFC" to "wellsfargo.com",
+        "GS" to "goldmansachs.com", "MS" to "morganstanley.com", "V" to "visa.com", "MA" to "mastercard.com",
+        "PG" to "pg.com", "JNJ" to "jnj.com", "UNH" to "unitedhealthgroup.com", "XOM" to "exxonmobil.com",
+        "CVX" to "chevron.com", "WMT" to "walmart.com", "HD" to "homedepot.com", "MCD" to "mcdonalds.com",
+        "SBUX" to "starbucks.com", "TSM" to "tsmc.com", "ASML" to "asml.com", "AVGO" to "broadcom.com",
+        "CRM" to "salesforce.com", "ORCL" to "oracle.com", "IBM" to "ibm.com", "INTC" to "intel.com",
+        "QCOM" to "qualcomm.com", "TXN" to "ti.com", "CSCO" to "cisco.com", "ADBE" to "adobe.com",
+        "PYPL" to "paypal.com", "SQ" to "block.xyz", "XYZ" to "block.xyz", "UBER" to "uber.com", "ABNB" to "airbnb.com",
+        "SHOP" to "shopify.com", "SPOT" to "spotify.com", "BABA" to "alibaba.com", "TM" to "toyota.com",
+        "SONY" to "sony.com", "NTDOY" to "nintendo.com", "PLTR" to "palantir.com", "COIN" to "coinbase.com",
+        "RIVN" to "rivian.com", "F" to "ford.com", "GM" to "gm.com", "T" to "att.com", "VZ" to "verizon.com",
+        "TMUS" to "t-mobile.com", "RY" to "rbc.com", "TD" to "td.com", "SHOP.TO" to "shopify.com", "BB" to "blackberry.com",
+        "LLY" to "lilly.com", "PFE" to "pfizer.com", "MRK" to "merck.com", "ABBV" to "abbvie.com", "NVO" to "novonordisk.com",
+        "COST" to "costco.com", "TGT" to "target.com", "LULU" to "lululemon.com", "ARM" to "arm.com", "MU" to "micron.com",
+        "SNOW" to "snowflake.com", "NET" to "cloudflare.com", "RBLX" to "roblox.com", "EA" to "ea.com",
+        "TTWO" to "take2games.com", "SPY" to "ssga.com", "QQQ" to "invesco.com", "VOO" to "vanguard.com",
+    )
+
+    /** Web de la empresa: la tabla o, si no está, el primer nombre de la empresa + .com (Nvidia → nvidia.com). */
+    private fun domainFor(symbol: String, name: String): String? {
+        domains[symbol]?.let { return it }
+        // Índices, cripto y divisas llevan su propio icono.
+        if (symbol.startsWith("^") || symbol.endsWith("=X") || symbol.contains("-USD") || symbol.contains("-EUR")) return null
+        val first = name.lowercase().split(' ', ',').firstOrNull { it.isNotBlank() } ?: return null
+        val base = first.removeSuffix(".com").filter { it.isLetterOrDigit() || it == '-' }
+        return base.takeIf { it.length >= 2 }?.let { "$it.com" }
+    }
+
+    /**
+     * Logo real de la empresa con el servicio de iconos de Google (el mismo que usa Chrome). Se baja una vez y
+     * se guarda en caché; si Google no lo conoce (404) queda la inicial de color.
+     */
+    private fun companyLogo(ctx: Context, symbol: String, name: String): Bitmap? {
+        synchronized(logos) { if (logos.containsKey("q:$symbol")) return logos["q:$symbol"] }
+        val dir = java.io.File(ctx.cacheDir, "logos").apply { mkdirs() }
+        val file = java.io.File(dir, symbol.filter { it.isLetterOrDigit() || it == '-' || it == '.' } + ".png")
+        val missing = java.io.File(dir, file.name + ".none")
+        val week = 7 * 24 * 3_600_000L
+        val bmp: Bitmap? = when {
+            file.exists() -> BitmapFactory.decodeFile(file.path)
+            missing.exists() && System.currentTimeMillis() - missing.lastModified() < week -> null
+            else -> {
+                val domain = domainFor(symbol, name)
+                val got = domain?.let {
+                    runCatching {
+                        val c = URL(
+                            "https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://$it",
+                        ).openConnection() as HttpURLConnection
+                        c.connectTimeout = 8000; c.readTimeout = 8000; c.setRequestProperty("User-Agent", UA)
+                        try {
+                            if (c.responseCode != 200) null else c.inputStream.use { st -> st.readBytes() }
+                        } finally { c.disconnect() }
+                    }.getOrNull()
+                }
+                val decoded = got?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }?.takeIf { it.width >= 32 }
+                if (decoded != null) file.writeBytes(got!!) else if (domain != null) missing.writeText("")
+                decoded
+            }
+        }
+        synchronized(logos) { logos["q:$symbol"] = bmp }
+        return bmp
+    }
+
+    private fun fetchQuotes(ctx: Context, s: IslandSettings): List<Quote> =
         s.glanceSymbols.split(',').map { it.trim().uppercase() }.filter { it.isNotEmpty() }.take(4).mapNotNull { sym ->
             val json = get("https://query1.finance.yahoo.com/v8/finance/chart/" + URLEncoder.encode(sym, "UTF-8") + "?range=1d&interval=15m")
                 ?: return@mapNotNull null
@@ -291,9 +358,11 @@ object Glance {
                 val closesArr = r.optJSONObject("indicators")?.optJSONArray("quote")?.optJSONObject(0)?.optJSONArray("close")
                 val closes = if (closesArr == null) emptyList() else (0 until closesArr.length())
                     .mapNotNull { i -> closesArr.optDouble(i).takeIf { !it.isNaN() }?.toFloat() }
+                val name = m.optString("shortName").ifBlank { m.optString("longName") }.ifBlank { sym }
                 Quote(
-                    sym, m.optString("shortName").ifBlank { sym }, price,
+                    sym, name, price,
                     if (prev != 0.0) (price - prev) / prev * 100 else 0.0, m.optString("currency"), closes, prev,
+                    companyLogo(ctx, sym, name),
                 )
             }.onFailure { Log.w(TAG, "quote $sym", it) }.getOrNull()
         }

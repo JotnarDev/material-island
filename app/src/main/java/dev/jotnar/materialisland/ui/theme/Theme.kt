@@ -13,5 +13,8 @@ import androidx.compose.ui.platform.LocalContext
 fun AppTheme(content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     val scheme = if (isSystemInDarkTheme()) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
-    MaterialExpressiveTheme(colorScheme = scheme, motionScheme = MotionScheme.expressive(), content = content)
+    MaterialExpressiveTheme(
+        colorScheme = scheme, motionScheme = MotionScheme.expressive(),
+        typography = androidx.compose.runtime.remember { PixelFonts.typography() }, content = content,
+    )
 }

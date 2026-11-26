@@ -299,7 +299,10 @@ fun IslandView(
     modifier: Modifier = Modifier,
 ) {
     val ctx = LocalContext.current
-    MaterialTheme(colorScheme = dynamicDarkColorScheme(ctx)) {
+    MaterialTheme(
+        colorScheme = dynamicDarkColorScheme(ctx),
+        typography = remember { dev.jotnar.materialisland.ui.theme.PixelFonts.typography() },
+    ) {
         IslandBody(ui, geo, s, cb, modifier)
     }
 }

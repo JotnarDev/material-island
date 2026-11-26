@@ -432,7 +432,7 @@ private fun FinancePage(quotes: List<Glance.Quote>, p: IslandPalette) {
             val up = q.changePct >= 0
             val c = if (up) Up else Down
             Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
-                TickerLogo(q.symbol, 40.dp)
+                TickerLogo(q.symbol, q.logo, 40.dp)
                 Spacer(Modifier.width(Sp.group))
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -463,7 +463,8 @@ private fun price(v: Double) = if (v >= 1000) String.format(Locale.getDefault(),
 
 /** Logo redondo: un icono para índices, cripto y divisas; para el resto, la inicial sobre un color fijo por símbolo. */
 @Composable
-private fun TickerLogo(symbol: String, size: Dp) {
+private fun TickerLogo(symbol: String, logo: android.graphics.Bitmap?, size: Dp) {
+    if (logo != null) return CompanyLogo(logo, size)
     val sym = symbol.uppercase()
     data class L(val bg: Color, val fg: Color, val icon: ImageVector?)
     val l = when {
@@ -486,6 +487,27 @@ private fun TickerLogo(symbol: String, size: Dp) {
         else Text(
             sym.removePrefix("^").take(1), color = l.fg,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+    }
+}
+
+/**
+ * Logo real. Si el icono ya trae su propio fondo (esquinas opacas, como Amazon o NVIDIA) llena el círculo;
+ * si es transparente (Tesla, Nike) va sobre un círculo blanco con margen, como en la referencia.
+ */
+@Composable
+private fun CompanyLogo(bmp: android.graphics.Bitmap, size: Dp) {
+    val img = remember(bmp) { bmp.asImageBitmap() }
+    val filled = remember(bmp) {
+        val m = bmp.width / 10
+        listOf(m to m, bmp.width - 1 - m to m, m to bmp.height - 1 - m, bmp.width - 1 - m to bmp.height - 1 - m)
+            .all { (x, y) -> android.graphics.Color.alpha(bmp.getPixel(x, y)) > 200 }
+    }
+    Box(Modifier.size(size).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+        Image(
+            img, null,
+            modifier = if (filled) Modifier.fillMaxSize() else Modifier.size(size * 0.66f),
+            contentScale = if (filled) androidx.compose.ui.layout.ContentScale.Crop else androidx.compose.ui.layout.ContentScale.Fit,
         )
     }
 }
