@@ -32,6 +32,23 @@ made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
 
 It has **no internet permission**. Nothing you see in the island ever leaves the phone.
 
+## See it in motion
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><b>Music in three steps</b><br>Pill, card, then full album art with the controls on a progressive blur.<br><br><img src="docs/gifs/music.gif" alt="Music: compact pill, card and full album art with blurred controls"></td>
+    <td width="50%" valign="top"><b>Liquid drop</b> (slow motion)<br>An optional open style: a drop stretches off the camera, breaks away and opens.<br><br><img src="docs/gifs/liquid-drop.gif" alt="Liquid drop open animation in slow motion"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Charging</b><br>Wavy ring, count-up and a light sweep. Tap for time to full, speed, cable or wireless, watts and temperature.<br><br><img src="docs/gifs/charging.gif" alt="Charging pill and detail card"></td>
+    <td valign="top"><b>Shortcuts from the camera</b><br>Tap the camera at rest for a card of shortcuts you choose.<br><br><img src="docs/gifs/shortcuts.gif" alt="Shortcuts card opened from the camera"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Calls</b><br>Answer from the island, then keep the call timer in a compact pill.<br><br><img src="docs/gifs/call.gif" alt="Incoming call answered from the island"></td>
+    <td valign="top"><b>Messages</b><br>A banner with reply and mark-as-read that goes back into the camera.<br><br><img src="docs/gifs/message.gif" alt="Message banner"></td>
+  </tr>
+</table>
+
 ## Screenshots
 
 <table>

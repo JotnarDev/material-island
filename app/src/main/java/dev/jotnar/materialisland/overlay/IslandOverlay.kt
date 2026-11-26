@@ -377,6 +377,11 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
 
     override fun onSwipe(item: IslandItem?, mode: Mode, dir: Swipe) {
         if (mode == Mode.REST || mode == Mode.HIDDEN) return
+        // La tarjeta de accesos no tiene actividad detrás: deslizar en vertical la cierra.
+        if (expandedId.value == SHORTCUTS_ID && item == null) {
+            if (dir == Swipe.UP || dir == Swipe.DOWN) collapse()
+            return
+        }
         val s = SettingsStore.current
         perform(
             when (dir) {

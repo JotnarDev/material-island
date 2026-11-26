@@ -822,6 +822,9 @@ private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
 
 private val ChargeGreen = Color(0xFF6DD58C)
 
+/** postedAt del aviso de carga que ya hizo su animación de entrada. */
+private var chargeIntroShownFor = 0L
+
 /** Estado de carga en vivo: la demo usa sus datos fijos, lo real se relee cada 2 s mientras se ve. */
 @Composable
 private fun rememberCharge(initial: ChargeInfo): ChargeInfo {
@@ -840,8 +843,8 @@ private fun rememberCharge(initial: ChargeInfo): ChargeInfo {
  * y una onda que sale del centro al conectar.
  */
 @Composable
-private fun ChargeRing(level: Int, charging: Boolean, color: Color, track: Color, size: Dp, iconSize: Dp, ripple: Boolean) {
-    val fill = remember { Animatable(0f) }
+private fun ChargeRing(level: Int, charging: Boolean, color: Color, track: Color, size: Dp, iconSize: Dp, ripple: Boolean, intro: Boolean = true) {
+    val fill = remember { Animatable(if (intro) 0f else level / 100f) }
     LaunchedEffect(level) { fill.animateTo(level / 100f, spring(dampingRatio = 0.8f, stiffness = 60f)) }
     val pulse = if (charging) {
         val t = rememberInfiniteTransition(label = "bolt")
@@ -875,8 +878,8 @@ private fun ChargeRing(level: Int, charging: Boolean, color: Color, track: Color
 
 /** Porcentaje que cuenta desde 0 hasta el nivel. */
 @Composable
-private fun countUp(level: Int): Int {
-    val a = remember { Animatable(0f) }
+private fun countUp(level: Int, intro: Boolean = true): Int {
+    val a = remember { Animatable(if (intro) 0f else level.toFloat()) }
     LaunchedEffect(level) { a.animateTo(level.toFloat(), tween(1100, easing = FastOutSlowInEasing)) }
     return a.value.roundToInt()
 }
@@ -886,8 +889,10 @@ private fun countUp(level: Int): Int {
 private fun ChargingPill(item: IslandItem, c: ChargeInfo, p: IslandPalette, d: Dims) {
     val on = item.compactText == "on"
     val color = if (on) ChargeGreen else p.variant
+    // La entrada animada solo una vez por conexión: al volver de la tarjeta no se repite.
+    val intro = remember { (on && item.postedAt != chargeIntroShownFor).also { chargeIntroShownFor = item.postedAt } }
     val sweep = remember { Animatable(0f) }
-    LaunchedEffect(on) { if (on) sweep.animateTo(1f, tween(1300, delayMillis = 150, easing = FastOutSlowInEasing)) }
+    LaunchedEffect(on) { if (on && intro) sweep.animateTo(1f, tween(1300, delayMillis = 150, easing = FastOutSlowInEasing)) }
     Row(
         Modifier.width(d.wideW).height(d.pillH)
             .drawBehind {
@@ -907,7 +912,7 @@ private fun ChargingPill(item: IslandItem, c: ChargeInfo, p: IslandPalette, d: D
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            ChargeRing(c.level, on, color, color.copy(alpha = 0.22f), d.icon, d.icon * 0.55f, ripple = on)
+            ChargeRing(c.level, on, color, color.copy(alpha = 0.22f), d.icon, d.icon * 0.55f, ripple = on && intro, intro = intro)
             Spacer(Modifier.width(Sp.iconText))
             Text(
                 if (on) "Charging" else item.title, style = MaterialTheme.typography.labelLarge, color = p.content,
@@ -924,7 +929,7 @@ private fun ChargingPill(item: IslandItem, c: ChargeInfo, p: IslandPalette, d: D
                 Spacer(Modifier.width(6.dp))
             }
             Text(
-                "${if (on) countUp(c.level) else c.level}%", color = color, maxLines = 1,
+                "${if (on) countUp(c.level, intro) else c.level}%", color = color, maxLines = 1,
                 style = MaterialTheme.typography.titleSmall.merge(Tabular).copy(fontWeight = FontWeight.Bold),
             )
         }

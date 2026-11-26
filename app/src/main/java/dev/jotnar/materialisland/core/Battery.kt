@@ -20,16 +20,20 @@ object Battery {
             ?: i?.let { it.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) * 100 / it.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1) }
             ?: 0
         val plugged = i?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
-        val status = i?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val plug = when (plugged) {
+        // El estado se lee en vivo: el último aviso guardado (sticky) puede ir atrasado justo al conectar.
+        val status = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_STATUS)?.takeIf { it > 0 }
+            ?: i?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val charging = bm?.isCharging == true ||
+            status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        var plug = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_AC -> ChargeInfo.Plug.WIRED
             BatteryManager.BATTERY_PLUGGED_USB -> ChargeInfo.Plug.USB
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> ChargeInfo.Plug.WIRELESS
             BatteryManager.BATTERY_PLUGGED_DOCK -> ChargeInfo.Plug.DOCK
             else -> ChargeInfo.Plug.NONE
         }
-        val charging = plug != ChargeInfo.Plug.NONE &&
-            (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
+        // Si carga pero el aviso guardado aún dice "desconectado", al menos no decir "Unplugged".
+        if (charging && plug == ChargeInfo.Plug.NONE) plug = ChargeInfo.Plug.WIRED
 
         // Potencia máxima que anuncia el cargador (extras del sistema, sin constante pública).
         val maxUa = i?.getIntExtra("max_charging_current", -1) ?: -1

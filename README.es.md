@@ -9,6 +9,23 @@ Material 3 Expressive. Hecha para el Pixel 10 Pro (Android 17), funciona en cual
 
 Sin permiso de internet: nada sale del teléfono.
 
+## En movimiento
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><b>Música en tres pasos</b><br>Píldora, tarjeta y carátula grande con los controles sobre un desenfoque progresivo.<br><br><img src="docs/gifs/music.gif" alt="Music: compact pill, card and full album art with blurred controls"></td>
+    <td width="50%" valign="top"><b>Gota líquida</b> (cámara lenta)<br>Estilo de apertura opcional: una gota se estira desde la cámara, se suelta y se abre.<br><br><img src="docs/gifs/liquid-drop.gif" alt="Liquid drop open animation in slow motion"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Carga</b><br>Anillo ondulado, porcentaje que sube y un barrido de luz. Al tocarla: tiempo hasta el 100 %, velocidad, cable o inalámbrica, vatios y temperatura.<br><br><img src="docs/gifs/charging.gif" alt="Charging pill and detail card"></td>
+    <td valign="top"><b>Accesos desde la cámara</b><br>Toca la cámara en reposo y sale una tarjeta con los accesos que elijas.<br><br><img src="docs/gifs/shortcuts.gif" alt="Shortcuts card opened from the camera"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Llamadas</b><br>Contesta desde la isla y el tiempo de llamada queda en una píldora compacta.<br><br><img src="docs/gifs/call.gif" alt="Incoming call answered from the island"></td>
+    <td valign="top"><b>Mensajes</b><br>Un banner con responder y marcar como leído que vuelve a la cámara.<br><br><img src="docs/gifs/message.gif" alt="Message banner"></td>
+  </tr>
+</table>
+
 ## Qué hace
 
 | Tipo | Compacta | Expandida |
