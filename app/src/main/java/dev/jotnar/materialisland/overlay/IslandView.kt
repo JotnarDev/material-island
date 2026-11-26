@@ -69,6 +69,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
@@ -143,6 +149,8 @@ data class IslandUi(
     val copiedId: String? = null,
     /** Mensajes sin leer, el más reciente primero. */
     val unread: List<IslandItem> = emptyList(),
+    /** Música en su tercer nivel (carátula grande). */
+    val full: Boolean = false,
 )
 
 interface IslandCallbacks {
@@ -808,11 +816,20 @@ private fun Card(
             // Llamadas y mensajes son banners: la etiqueta de la app va encima del nombre, sin encabezado.
             Kind.CALL -> CallBody(item, p, cb)
             Kind.NOTIFICATION -> NotificationBody(item, p, ui, cb)
+            Kind.MEDIA -> androidx.compose.animation.AnimatedContent(
+                targetState = ui.full,
+                transitionSpec = {
+                    (fadeIn(tween(220, delayMillis = 90)) togetherWith fadeOut(tween(90)))
+                        .using(androidx.compose.animation.SizeTransform(clip = true) { _, _ -> sizeSpec })
+                },
+                label = "mediaLevel",
+            ) { full ->
+                if (full) MediaFull(item, p, d, s, cb) else MediaCard(item, p, s, cb)
+            }
             else -> {
                 CardHeader(item, p, d)
                 Column(Modifier.padding(start = Sp.edge, end = Sp.edge, bottom = Sp.edge)) {
                     when (item.kind) {
-                        Kind.MEDIA -> MediaBody(item, p, s, cb)
                         Kind.TIMER, Kind.RECORDING -> TimerBody(item, p, cb)
                         Kind.NAVIGATION -> NavBody(item, p, cb)
                         else -> ProgressBody(item, p, cb)
@@ -877,63 +894,181 @@ private fun ActionRow(item: IslandItem, p: IslandPalette, cb: IslandCallbacks, a
     }
 }
 
+/** Posición actual que avanza sola mientras suena. */
 @Composable
-private fun MediaBody(item: IslandItem, p: IslandPalette, s: IslandSettings, cb: IslandCallbacks) {
-    val m = item.media ?: return
+private fun rememberMediaPos(m: dev.jotnar.materialisland.model.MediaInfo): Long {
     val now by androidx.compose.runtime.produceState(android.os.SystemClock.elapsedRealtime(), m.playing) {
         while (m.playing) {
             value = android.os.SystemClock.elapsedRealtime(); delay(250)
         }
     }
-    val pos = m.currentPosition(now)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        MorphingArt(m.art, m.playing, Sp.banner, s.morphingArt, p.accentContainer)
-        Spacer(Modifier.width(Sp.group))
-        Column(Modifier.weight(1f)) {
-            Text(
-                m.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = p.content, maxLines = 1, modifier = Modifier.basicMarquee(),
-            )
-            Spacer(Modifier.height(Sp.lines))
-            Text(m.artist, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-    Spacer(Modifier.height(Sp.group))
-    if (m.durationMs > 0) {
-        WavyProgress(
-            progress = pos.toFloat() / m.durationMs, animate = m.playing, color = p.accent, track = p.track,
-            onSeek = { f -> cb.onSeek(item, f) },
+    return m.currentPosition(now)
+}
+
+/** Play/pausa que cambia de forma: píldora en pausa, cuadrado redondeado sonando (como el Pixel). */
+@Composable
+private fun PlayPauseButton(playing: Boolean, container: Color, content: Color, height: Dp, onClick: () -> Unit) {
+    val radius by animateDpAsState(if (playing) height / 3 else height / 2, spring(0.5f, 400f), label = "pp")
+    val width by animateDpAsState(if (playing) height * 1.25f else height * 1.5f, spring(0.55f, 400f), label = "ppw")
+    Box(
+        Modifier
+            .width(width).height(height)
+            .clip(RoundedCornerShape(radius))
+            .background(container)
+            .pointerInput(Unit) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play/pause",
+            tint = content, modifier = Modifier.size(height * 0.55f),
         )
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatDuration(pos), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = p.variant)
-            Spacer(Modifier.weight(1f))
-            Text(formatDuration(m.durationMs), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = p.variant)
-        }
     }
-    Spacer(Modifier.height(Sp.iconText))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { cb.onMedia(item, MediaCmd.PREV) }, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipPrevious, "Previous", tint = p.content, modifier = Modifier.size(32.dp))
+}
+
+@Composable
+private fun MediaControls(
+    item: IslandItem, playing: Boolean, cb: IslandCallbacks,
+    iconTint: Color, playContainer: Color, playContent: Color, sideContainer: Color?,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Sp.group * 2, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        @Composable
+        fun Side(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, cmd: MediaCmd) {
+            Box(
+                Modifier.size(Sp.avatar).clip(CircleShape)
+                    .then(if (sideContainer != null) Modifier.background(sideContainer) else Modifier)
+                    .pointerInput(Unit) { detectTapGestures { cb.onMedia(item, cmd) } },
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, desc, tint = iconTint, modifier = Modifier.size(26.dp)) }
         }
-        // Botón play/pausa que cambia de forma: píldora en pausa, cuadrado redondeado sonando (como el Pixel).
-        val radius by animateDpAsState(if (m.playing) 20.dp else 32.dp, spring(0.5f, 400f), label = "pp")
-        val width by animateDpAsState(if (m.playing) 76.dp else 92.dp, spring(0.55f, 400f), label = "ppw")
-        Box(
-            Modifier
-                .width(width).height(60.dp)
-                .clip(RoundedCornerShape(radius))
-                .background(p.accent)
-                .pointerInput(Unit) { detectTapGestures { cb.onMedia(item, MediaCmd.PLAY_PAUSE) } },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                if (m.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play/pause",
-                tint = Color.Black.copy(alpha = 0.85f), modifier = Modifier.size(32.dp),
+        Side(Icons.Rounded.SkipPrevious, "Previous", MediaCmd.PREV)
+        PlayPauseButton(playing, playContainer, playContent, 52.dp) { cb.onMedia(item, MediaCmd.PLAY_PAUSE) }
+        Side(Icons.Rounded.SkipNext, "Next", MediaCmd.NEXT)
+    }
+}
+
+/** Barra de progreso con los tiempos a los lados: 0:57 ~~~~~─── 3:35 */
+@Composable
+private fun MediaProgress(item: IslandItem, pos: Long, color: Color, track: Color, label: Color, cb: IslandCallbacks) {
+    val m = item.media ?: return
+    if (m.durationMs <= 0) return
+    val style = MaterialTheme.typography.labelMedium.merge(Tabular)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(formatDuration(pos), style = style, color = label)
+        Spacer(Modifier.width(Sp.group))
+        Box(Modifier.weight(1f)) {
+            WavyProgress(
+                progress = pos.toFloat() / m.durationMs, animate = m.playing, color = color, track = track,
+                onSeek = { f -> cb.onSeek(item, f) },
             )
         }
-        IconButton(onClick = { cb.onMedia(item, MediaCmd.NEXT) }, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipNext, "Next", tint = p.content, modifier = Modifier.size(32.dp))
+        Spacer(Modifier.width(Sp.group))
+        Text(formatDuration(m.durationMs), style = style, color = label)
+    }
+}
+
+/**
+ * Nivel 2: carátula 64 · título y artista · visualizador a la derecha; debajo la barra con los tiempos
+ * a los lados y los controles centrados.
+ */
+@Composable
+private fun MediaCard(item: IslandItem, p: IslandPalette, s: IslandSettings, cb: IslandCallbacks) {
+    val m = item.media ?: return
+    val pos = rememberMediaPos(m)
+    Column(Modifier.fillMaxWidth().padding(Sp.edge + 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MorphingArt(m.art, m.playing, 64.dp, s.morphingArt, p.accentContainer)
+            Spacer(Modifier.width(Sp.edge))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    m.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = p.content, maxLines = 1, modifier = Modifier.basicMarquee(),
+                )
+                Spacer(Modifier.height(Sp.lines))
+                Text(m.artist, style = MaterialTheme.typography.bodyMedium, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(Sp.group))
+            Visualizer(m.playing, p.accent, height = 22.dp, bars = 5)
         }
+        Spacer(Modifier.height(Sp.edge + 4.dp))
+        MediaProgress(item, pos, p.accent, p.track, p.variant, cb)
+        Spacer(Modifier.height(Sp.edge))
+        MediaControls(
+            item, m.playing, cb, iconTint = p.content,
+            playContainer = p.accent, playContent = Color.Black.copy(alpha = 0.85f), sideContainer = null,
+        )
+    }
+}
+
+/**
+ * Nivel 3: la carátula ocupa toda la tarjeta y los controles flotan encima sobre un panel que
+ * desenfoca la misma carátula (efecto de cristal), para separar los controles de la imagen.
+ */
+@Composable
+private fun MediaFull(item: IslandItem, p: IslandPalette, d: Dims, s: IslandSettings, cb: IslandCallbacks) {
+    val m = item.media ?: return
+    val pos = rememberMediaPos(m)
+    val art = m.art
+    var panelH by remember { mutableStateOf(0) }
+    val fallback = Brush.linearGradient(listOf(p.accentContainer, p.bg))
+    Box(Modifier.width(d.cardW).height(d.cardW * 1.08f)) {
+        @Composable
+        fun ArtLayer(modifier: Modifier) {
+            if (art != null) Image(art.asImageBitmap(), null, modifier, contentScale = ContentScale.Crop)
+            else Box(modifier.background(fallback))
+        }
+        ArtLayer(Modifier.matchParentSize())
+        // Cristal: la misma carátula desenfocada, recortada a la zona del panel (borde nítido arriba).
+        ArtLayer(
+            Modifier.matchParentSize()
+                .drawWithContent {
+                    clipRect(top = size.height - panelH) { this@drawWithContent.drawContent() }
+                }
+                .blur(28.dp, BlurredEdgeTreatment.Rectangle),
+        )
+        Box(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .onSizeChanged { panelH = it.height }
+                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.18f), Color.Black.copy(alpha = 0.42f))))
+                .drawBehind {
+                    drawLine(Color.White.copy(alpha = 0.14f), Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx())
+                }
+                .padding(start = Sp.edge + 4.dp, end = Sp.edge + 4.dp, top = Sp.edge, bottom = Sp.edge + 4.dp),
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            m.title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = Color.White, maxLines = 1, modifier = Modifier.basicMarquee(),
+                        )
+                        Spacer(Modifier.height(Sp.lines))
+                        Text(
+                            m.artist, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.75f),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Spacer(Modifier.width(Sp.group))
+                    Visualizer(m.playing, Color.White, height = 22.dp, bars = 5)
+                }
+                Spacer(Modifier.height(Sp.group))
+                MediaProgress(item, pos, Color.White, Color.White.copy(alpha = 0.3f), Color.White.copy(alpha = 0.75f), cb)
+                Spacer(Modifier.height(Sp.group))
+                MediaControls(
+                    item, m.playing, cb, iconTint = Color.White,
+                    playContainer = Color.White, playContent = Color.Black.copy(alpha = 0.85f),
+                    sideContainer = Color.White.copy(alpha = 0.16f),
+                )
+            }
+        }
+        // Ícono de la app arriba a la izquierda, sobre una pastilla translúcida.
+        Box(
+            Modifier.align(Alignment.TopStart).padding(Sp.edge).clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.35f)).padding(4.dp),
+        ) { AppOrKindIcon(item, p, 24.dp) }
     }
 }
 

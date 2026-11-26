@@ -29,8 +29,24 @@ object Demo {
 
     private var demoPlaying = true
 
+    /** Portada de la demo: degradado con anillos y un sol, para que se note el cristal desenfocado. */
+    private val demoCover: Bitmap by lazy {
+        val bmp = gradient(0xFFFF8A65.toInt(), 0xFF7E57C2.toInt())
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.color = 0xFFFFE082.toInt(); c.drawCircle(176f, 84f, 38f, p)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 10f
+        listOf(0x66FFFFFF, 0x44FFFFFF, 0x2EFFFFFF).forEachIndexed { i, col ->
+            p.color = col; c.drawCircle(72f, 196f, 46f + i * 34f, p)
+        }
+        p.style = Paint.Style.FILL; p.color = 0xFF311B92.toInt()
+        c.drawRect(0f, 214f, 256f, 256f, p)
+        p.color = 0xFF4527A0.toInt(); c.drawCircle(200f, 230f, 54f, p)
+        bmp
+    }
+
     private fun mediaItem(playing: Boolean, pos: Long = 42_000L): IslandItem {
-        val art = gradient(0xFFFF8A65.toInt(), 0xFF7E57C2.toInt())
+        val art = demoCover
         val info = MediaInfo(
             title = "Demo song", artist = "Material Island", art = art, artColor = 0xFFFF8A65.toInt(),
             durationMs = 215_000, positionMs = pos, positionUpdatedAt = SystemClock.elapsedRealtime(),

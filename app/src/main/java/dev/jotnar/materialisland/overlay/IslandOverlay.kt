@@ -76,6 +76,8 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
 
     private val geometry = MutableStateFlow(computeIslandGeometry(service))
     private val expandedId = MutableStateFlow<String?>(null)
+    /** Tercer nivel de la música: tarjeta grande con la carátula. Solo vale mientras está expandida. */
+    private val fullMedia = MutableStateFlow(false)
     private val replyingId = MutableStateFlow<String?>(null)
     private val copiedId = MutableStateFlow<String?>(null)
     private val landscape = MutableStateFlow(isLandscape())
@@ -93,7 +95,8 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
     ) { st, exp, hide, reply, copied ->
         val primary = st.primary
         IslandUi(st, expanded = exp != null && exp == primary?.id, hidden = hide, replyingId = reply, copiedId = copied)
-    }.combine(IslandStore.unread) { u, unread -> u.copy(unread = unread) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
+    }.combine(IslandStore.unread) { u, unread -> u.copy(unread = unread) }
+        .combine(fullMedia) { u, full -> u.copy(full = full && u.expanded && u.state.primary?.kind == Kind.MEDIA) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
 
     private var collapseJob: Job? = null
 
@@ -264,6 +267,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
 
     private fun expand(id: String) {
         if (expandedId.value == id) return
+        fullMedia.value = false
         expandedId.value = id
         Haptics.expand()
         scheduleCollapse()
@@ -273,6 +277,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         if (expandedId.value == null) return
         val wasTransient = IslandStore.state.value.transient?.id == expandedId.value
         expandedId.value = null
+        fullMedia.value = false
         endReply()
         if (wasTransient) IslandStore.hold(false)
         if (!silent) Haptics.collapse()
@@ -356,7 +361,12 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
             GestureAction.NONE -> Unit
             GestureAction.TOGGLE_EXPAND -> when (mode) {
                 Mode.COMPACT -> expand(item.id)
-                Mode.EXPANDED -> if (!swipeDown) collapse()
+                // Música: compacta → tarjeta → carátula grande. Tocar en la grande la cierra.
+                Mode.EXPANDED -> when {
+                    item.kind == Kind.MEDIA && !fullMedia.value -> { fullMedia.value = true; Haptics.expand(); scheduleCollapse() }
+                    !swipeDown -> collapse()
+                    else -> Unit
+                }
                 Mode.PEEK -> if (expandedId.value == item.id) { if (!swipeDown) collapse() } else { IslandStore.hold(true); expand(item.id) }
                 Mode.WIDE -> IslandStore.dismissTransient(item.id)
                 else -> Unit
@@ -368,6 +378,8 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
             }
             GestureAction.DISMISS -> when {
                 !item.kind.persistent -> { collapse(silent = true); Haptics.tick(); IslandStore.dismissTransient(item.id) }
+                // Deslizar hacia arriba en la carátula grande baja un nivel en vez de cerrar del todo.
+                fullMedia.value && expandedId.value != null -> { fullMedia.value = false; Haptics.collapse(); scheduleCollapse() }
                 expandedId.value != null -> collapse()
                 else -> Unit
             }
