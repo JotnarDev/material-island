@@ -290,10 +290,34 @@ fun GesturesScreen(onBack: () -> Unit) {
         GroupTitle("At rest (on the camera)")
         Group(
             { ChoiceRow("Tap the camera", i, s.idleTap, { it.label }, Icons.Rounded.CameraFront) { v -> set { it.copy(idleTap = v) } } },
+            { ChoiceRow("Double tap the camera", i, s.idleDoubleTap, { it.label }, Icons.Rounded.TouchApp) { v -> set { it.copy(idleDoubleTap = v) } } },
             { ChoiceRow("Long press the camera", i, s.idleLongPress, { it.label }, Icons.Rounded.FlashlightOn) { v -> set { it.copy(idleLongPress = v) } } },
         )
+        if (IdleAction.SHORTCUTS in listOf(s.idleTap, s.idleDoubleTap, s.idleLongPress)) {
+            GroupTitle("Shortcuts card")
+            val choices = IdleAction.shortcutChoices
+            Group(
+                *choices.map { a ->
+                    @Composable {
+                        SwitchRow(a.label, a in s.shortcuts) { on ->
+                            set { st ->
+                                // Se mantiene el orden de la lista de opciones.
+                                val next = if (on) (st.shortcuts + a) else (st.shortcuts - a)
+                                st.copy(shortcuts = choices.filter { it in next })
+                            }
+                        }
+                    }
+                }.toTypedArray(),
+            )
+            Text(
+                "Shown 3 per row, in this order. Flashlight and Sound mode stay open so you can see the change.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
         Text(
-            "With \"Nothing\" on both, the camera ignores touches and never gets in the way of pulling down the shade.",
+            "With \"Nothing\" on all three, the camera ignores touches and never gets in the way of pulling down the shade. " +
+                "Double tap makes a single tap wait a moment to tell them apart.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp),
         )

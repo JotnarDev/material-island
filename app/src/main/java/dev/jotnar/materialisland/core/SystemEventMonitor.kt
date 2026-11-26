@@ -77,7 +77,8 @@ class SystemEventMonitor(private val ctx: Context) {
                 )
             }
             Intent.ACTION_BATTERY_LOW -> if (s.lowBattery) show(Kind.BATTERY, "Low battery", "${batteryLevel()}%")
-            AudioManager.RINGER_MODE_CHANGED_ACTION -> if (s.ringer) {
+            AudioManager.RINGER_MODE_CHANGED_ACTION -> if (s.ringer &&
+                android.os.SystemClock.elapsedRealtime() - Actions.ownRingerChangeAt > 1500) {
                 when (intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, -1)) {
                     AudioManager.RINGER_MODE_SILENT -> show(Kind.RINGER, "Silent", "On", "silent")
                     AudioManager.RINGER_MODE_VIBRATE -> show(Kind.RINGER, "Vibrate", "On", "vibrate")

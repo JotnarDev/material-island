@@ -153,11 +153,16 @@ data class IslandUi(
     val unread: List<IslandItem> = emptyList(),
     /** Música en su tercer nivel (carátula grande). */
     val full: Boolean = false,
+    /** Tarjeta de accesos abierta desde la cámara en reposo. */
+    val shortcuts: Boolean = false,
+    val shortcutTick: Int = 0,
 )
 
 interface IslandCallbacks {
     fun onTap(item: IslandItem?, mode: Mode) {}
     fun onLongPress(item: IslandItem?, mode: Mode) {}
+    fun onDoubleTap(item: IslandItem?, mode: Mode) {}
+    fun onShortcut(action: IdleAction) {}
     fun onSwipe(item: IslandItem?, mode: Mode, dir: Swipe) {}
     fun onAction(item: IslandItem, action: IslandAction) {}
     fun onReplyStart(item: IslandItem) {}
@@ -177,7 +182,7 @@ fun resolveMode(ui: IslandUi): Mode {
     val p = ui.state.primary
     return when {
         ui.hidden -> Mode.HIDDEN
-        p == null -> Mode.REST
+        p == null -> if (ui.shortcuts) Mode.EXPANDED else Mode.REST
         p.kind == Kind.NOTIFICATION -> Mode.PEEK
         ui.expanded && p.kind == Kind.CHARGING -> Mode.EXPANDED
         !p.kind.persistent -> Mode.WIDE
@@ -418,7 +423,10 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     if (secondary != null) lastSecondary = secondary
 
     // Zona táctil: solo la isla (y la burbuja). Fuera de ella los toques pasan a la app de debajo.
-    val idleTouchable = s.idleTap != IdleAction.NONE || s.idleLongPress != IdleAction.NONE || s.calibration
+    val idleTouchable = s.idleTap != IdleAction.NONE || s.idleLongPress != IdleAction.NONE ||
+        s.idleDoubleTap != IdleAction.NONE || s.calibration
+    // El doble toque retrasa el toque simple, así que solo se escucha en reposo y si está configurado.
+    val doubleTapOn = mode == Mode.REST && s.idleDoubleTap != IdleAction.NONE
     LaunchedEffect(mainRect, satRect, bubblesRect, mode, showSat, bubblesTouchable, idleTouchable) {
         val m = with(density) { 6.dp.toPx() }
         val rects = buildList {
@@ -455,13 +463,14 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                             .clip(RoundedCornerShape(corner))
                             .background(bg)
                             .then(if (outline) Modifier.border(1.dp, outlineColor, RoundedCornerShape(corner)) else Modifier)
-                            .pointerInput(Unit) {
+                            .pointerInput(doubleTapOn) {
                                 detectTapGestures(
                                     onPress = {
                                         pressed = true; cb.onPressChanged(true)
                                         tryAwaitRelease()
                                         pressed = false; cb.onPressChanged(false)
                                     },
+                                    onDoubleTap = if (doubleTapOn) { _ -> cb.onDoubleTap(curItem, curMode) } else null,
                                     onTap = { cb.onTap(curItem, curMode) },
                                     onLongPress = { cb.onLongPress(curItem, curMode) },
                                 )
@@ -502,6 +511,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                             Mode.COMPACT -> if (item != null) Compact(item, p, dims, s)
                             Mode.WIDE -> if (item != null) Wide(item, p, dims, ui.copiedId == item.id)
                             Mode.PEEK, Mode.EXPANDED -> if (item != null) Card(item, p, dims, s, ui, cb, sizeSpec)
+                                else if (ui.shortcuts) ShortcutsCard(s, p, dims, ui.shortcutTick, cb)
                         }
                     }
                 }
@@ -980,6 +990,85 @@ private fun ChargingCard(item: IslandItem, p: IslandPalette) {
             ChargeChip(plugIcon, c.plug.label, p, Modifier.weight(1f))
             ChargeChip(Icons.Rounded.Bolt, c.watts?.let { "%.1f W".format(it) } ?: c.speed.label.substringBefore(" "), p, Modifier.weight(1f))
             c.tempC?.let { ChargeChip(Icons.Rounded.Thermostat, "%.0f °C".format(it), p, Modifier.weight(1f)) }
+        }
+    }
+}
+
+// ── Tarjeta de accesos (cámara en reposo) ─────────────────────────────
+
+private fun shortcutIcon(a: IdleAction, torch: Boolean, ringer: Int): androidx.compose.ui.graphics.vector.ImageVector = when (a) {
+    IdleAction.FLASHLIGHT -> if (torch) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff
+    IdleAction.SOUND_MODE -> when (ringer) {
+        android.media.AudioManager.RINGER_MODE_VIBRATE -> Icons.Rounded.Vibration
+        android.media.AudioManager.RINGER_MODE_SILENT -> Icons.Rounded.NotificationsOff
+        else -> Icons.Rounded.NotificationsActive
+    }
+    IdleAction.VOLUME -> Icons.Rounded.VolumeUp
+    IdleAction.ALARMS -> Icons.Rounded.Alarm
+    IdleAction.TIMER -> Icons.Rounded.HourglassTop
+    IdleAction.CAMERA -> Icons.Rounded.PhotoCamera
+    IdleAction.INTERNET -> Icons.Rounded.Wifi
+    IdleAction.SCREENSHOT -> Icons.Rounded.Screenshot
+    IdleAction.NOTIFICATIONS -> Icons.Rounded.Notifications
+    IdleAction.QUICK_SETTINGS -> Icons.Rounded.Tune
+    IdleAction.LOCK_SCREEN -> Icons.Rounded.Lock
+    IdleAction.OPEN_ISLAND_APP -> Icons.Rounded.Settings
+    else -> Icons.Rounded.Apps
+}
+
+private fun shortcutLabel(a: IdleAction, ringer: Int): String = when (a) {
+    IdleAction.SOUND_MODE -> when (ringer) {
+        android.media.AudioManager.RINGER_MODE_VIBRATE -> "Vibrate"
+        android.media.AudioManager.RINGER_MODE_SILENT -> "Silent"
+        else -> "Sound on"
+    }
+    IdleAction.OPEN_ISLAND_APP -> "Island"
+    IdleAction.QUICK_SETTINGS -> "Quick settings"
+    else -> a.label
+}
+
+/**
+ * Accesos rápidos en cuadrícula de 3 columnas. La linterna y el modo de sonido muestran su estado
+ * (encendidos = color de acento).
+ */
+@Composable
+private fun ShortcutsCard(s: IslandSettings, p: IslandPalette, d: Dims, tick: Int, cb: IslandCallbacks) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val torch = remember(tick) { dev.jotnar.materialisland.core.Actions.torchOn }
+    val ringer = remember(tick) { dev.jotnar.materialisland.core.Actions.ringerMode(ctx) }
+    val items = s.shortcuts.filter { it != IdleAction.NONE && it != IdleAction.SHORTCUTS }
+    Column(Modifier.width(d.cardW).padding(Sp.edge)) {
+        Caption("Shortcuts", p.variant)
+        Spacer(Modifier.height(Sp.group))
+        if (items.isEmpty()) {
+            Text("Choose shortcuts in Gestures.", style = MaterialTheme.typography.bodyMedium, color = p.variant)
+        }
+        items.chunked(3).forEachIndexed { r, row ->
+            if (r > 0) Spacer(Modifier.height(Sp.group))
+            Row(horizontalArrangement = Arrangement.spacedBy(Sp.group)) {
+                row.forEach { a ->
+                    val active = (a == IdleAction.FLASHLIGHT && torch) ||
+                        (a == IdleAction.SOUND_MODE && ringer != android.media.AudioManager.RINGER_MODE_NORMAL)
+                    val bg by androidx.compose.animation.animateColorAsState(
+                        if (active) p.accent else p.accentContainer.copy(alpha = 0.55f), label = "tile",
+                    )
+                    val fg = if (active) Color.Black.copy(alpha = 0.85f) else p.content
+                    Column(
+                        Modifier.weight(1f).height(76.dp).clip(RoundedCornerShape(22.dp)).background(bg)
+                            .pointerInput(a) { detectTapGestures { cb.onShortcut(a) } },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(shortcutIcon(a, torch, ringer), null, tint = fg, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.height(Sp.iconText - 2.dp))
+                        Text(
+                            shortcutLabel(a, ringer), style = MaterialTheme.typography.labelMedium, color = fg,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 6.dp),
+                        )
+                    }
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
         }
     }
 }

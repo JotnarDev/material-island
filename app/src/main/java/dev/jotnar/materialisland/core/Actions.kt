@@ -76,13 +76,23 @@ object Actions {
         }
     }
 
-    private var torchOn = false
+    var torchOn = false
+        private set
 
     fun idle(service: AccessibilityService?, ctx: Context, action: IdleAction) {
-        if (action == IdleAction.NONE) return
+        if (action == IdleAction.NONE || action == IdleAction.SHORTCUTS) return
         Haptics.click()
+        fun start(i: Intent) = runCatching { ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         when (action) {
-            IdleAction.NONE -> Unit
+            IdleAction.NONE, IdleAction.SHORTCUTS -> Unit
+            IdleAction.SOUND_MODE -> cycleSoundMode(ctx)
+            IdleAction.VOLUME -> ctx.getSystemService(android.media.AudioManager::class.java)?.adjustStreamVolume(
+                android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_SAME, android.media.AudioManager.FLAG_SHOW_UI,
+            )
+            IdleAction.ALARMS -> start(Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS))
+            IdleAction.TIMER -> start(Intent(android.provider.AlarmClock.ACTION_SHOW_TIMERS))
+            IdleAction.CAMERA -> start(Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+            IdleAction.INTERNET -> start(Intent(android.provider.Settings.Panel.ACTION_INTERNET_CONNECTIVITY))
             IdleAction.FLASHLIGHT -> toggleTorch(ctx)
             IdleAction.SCREENSHOT -> service?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
             IdleAction.NOTIFICATIONS -> service?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
@@ -93,6 +103,26 @@ object Actions {
             )
         }
     }
+
+    /** Modo de sonido actual, para pintar el acceso. */
+    fun ringerMode(ctx: Context): Int =
+        ctx.getSystemService(android.media.AudioManager::class.java)?.ringerMode ?: android.media.AudioManager.RINGER_MODE_NORMAL
+
+    /**
+     * Sonido ↔ vibrar. No pasa a silencio a propósito: desde una app, Android convierte el silencio en
+     * "No molestar" y no lo quita al volver a sonido, así que el usuario se quedaría sin avisos.
+     */
+    private fun cycleSoundMode(ctx: Context) {
+        val am = ctx.getSystemService(android.media.AudioManager::class.java) ?: return
+        val next = if (am.ringerMode == android.media.AudioManager.RINGER_MODE_NORMAL)
+            android.media.AudioManager.RINGER_MODE_VIBRATE else android.media.AudioManager.RINGER_MODE_NORMAL
+        ownRingerChangeAt = android.os.SystemClock.elapsedRealtime()
+        runCatching { am.ringerMode = next }
+    }
+
+    /** Cuándo cambió el sonido desde la tarjeta: ese cambio no debe mostrar el aviso de "Sound/Vibrate". */
+    @Volatile var ownRingerChangeAt = 0L
+        private set
 
     private fun toggleTorch(ctx: Context) {
         val cm = ctx.getSystemService(CameraManager::class.java) ?: return

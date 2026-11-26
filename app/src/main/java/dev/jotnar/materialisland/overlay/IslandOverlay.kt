@@ -76,6 +76,8 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
 
     private val geometry = MutableStateFlow(computeIslandGeometry(service))
     private val expandedId = MutableStateFlow<String?>(null)
+    /** Sube cada vez que se usa un acceso, para que la tarjeta repinte su estado (linterna, sonido). */
+    private val shortcutTick = MutableStateFlow(0)
     /** Tercer nivel de la música: tarjeta grande con la carátula. Solo vale mientras está expandida. */
     private val fullMedia = MutableStateFlow(false)
     private val replyingId = MutableStateFlow<String?>(null)
@@ -94,9 +96,13 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         IslandStore.state, expandedId, hidden, replyingId, copiedId,
     ) { st, exp, hide, reply, copied ->
         val primary = st.primary
-        IslandUi(st, expanded = exp != null && exp == primary?.id, hidden = hide, replyingId = reply, copiedId = copied)
+        IslandUi(
+            st, expanded = exp != null && exp == primary?.id, hidden = hide, replyingId = reply, copiedId = copied,
+            shortcuts = exp == SHORTCUTS_ID && primary == null,
+        )
     }.combine(IslandStore.unread) { u, unread -> u.copy(unread = unread) }
-        .combine(fullMedia) { u, full -> u.copy(full = full && u.expanded && u.state.primary?.kind == Kind.MEDIA) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
+        .combine(fullMedia) { u, full -> u.copy(full = full && u.expanded && u.state.primary?.kind == Kind.MEDIA) }
+        .combine(shortcutTick) { u, t -> u.copy(shortcutTick = t) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
 
     private var collapseJob: Job? = null
 
@@ -325,7 +331,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         val s = SettingsStore.current
         when (mode) {
             Mode.HIDDEN -> Unit
-            Mode.REST -> Actions.idle(service, service, s.idleTap)
+            Mode.REST -> idle(s.idleTap)
             Mode.WIDE -> when {
                 item?.otp != null -> copyOtp(item)
                 // Al tocar la píldora de carga se abre la tarjeta con el detalle.
@@ -343,8 +349,30 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
 
     override fun onLongPress(item: IslandItem?, mode: Mode) {
         val s = SettingsStore.current
-        if (mode == Mode.REST) Actions.idle(service, service, s.idleLongPress)
+        if (mode == Mode.REST) idle(s.idleLongPress)
         else perform(s.longPress, item, mode)
+    }
+
+    override fun onDoubleTap(item: IslandItem?, mode: Mode) {
+        if (mode == Mode.REST) idle(SettingsStore.current.idleDoubleTap)
+    }
+
+    override fun onShortcut(action: dev.jotnar.materialisland.data.IdleAction) {
+        // El modo de sonido y la linterna se quedan en la tarjeta para ver el cambio; lo demás la cierra.
+        val stay = action == dev.jotnar.materialisland.data.IdleAction.SOUND_MODE ||
+            action == dev.jotnar.materialisland.data.IdleAction.FLASHLIGHT
+        if (!stay) collapse(silent = true) else scheduleCollapse()
+        Actions.idle(service, service, action)
+        shortcutTick.value++
+    }
+
+    /** Gesto sobre la cámara en reposo: una acción, o abrir la tarjeta de accesos. */
+    private fun idle(action: dev.jotnar.materialisland.data.IdleAction) {
+        if (action == dev.jotnar.materialisland.data.IdleAction.SHORTCUTS) {
+            expandedId.value = SHORTCUTS_ID
+            Haptics.expand()
+            scheduleCollapse()
+        } else Actions.idle(service, service, action)
     }
 
     override fun onSwipe(item: IslandItem?, mode: Mode, dir: Swipe) {
@@ -510,3 +538,6 @@ private class OverlayOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegi
 }
 
 private fun IslandItem.isExpandableCharge() = kind == Kind.CHARGING && compactText == "on" && charge != null
+
+/** expandedId especial: la tarjeta de accesos que se abre desde la cámara en reposo. */
+private const val SHORTCUTS_ID = "island:shortcuts"

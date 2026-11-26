@@ -39,12 +39,26 @@ enum class GestureAction(val label: String) {
 @Serializable
 enum class IdleAction(val label: String) {
     NONE("Nothing"),
+    SHORTCUTS("Shortcuts card"),
     FLASHLIGHT("Flashlight"),
+    SOUND_MODE("Sound mode"),
+    VOLUME("Volume"),
+    ALARMS("Alarms"),
+    TIMER("Timer"),
+    CAMERA("Camera"),
+    INTERNET("Internet"),
     SCREENSHOT("Screenshot"),
     NOTIFICATIONS("Notifications"),
     QUICK_SETTINGS("Quick settings"),
     LOCK_SCREEN("Lock screen"),
     OPEN_ISLAND_APP("Open Material Island"),
+    ;
+
+    companion object {
+        /** Lo que se puede poner en la tarjeta de accesos (todo menos "nada" y la propia tarjeta). */
+        val shortcutChoices get() = entries.filter { it != NONE && it != SHORTCUTS }
+        val defaultShortcuts = listOf(FLASHLIGHT, SOUND_MODE, VOLUME, ALARMS, TIMER, CAMERA)
+    }
 }
 
 /** Qué notificaciones aparecen como aviso. */
@@ -149,8 +163,11 @@ data class IslandSettings(
     val swipeUp: GestureAction = GestureAction.DISMISS,
     val swipeDown: GestureAction = GestureAction.TOGGLE_EXPAND,
     val swipeSideways: GestureAction = GestureAction.NEXT_ACTIVITY,
-    val idleTap: IdleAction = IdleAction.NONE,
+    val idleTap: IdleAction = IdleAction.SHORTCUTS,
+    val idleDoubleTap: IdleAction = IdleAction.NONE,
     val idleLongPress: IdleAction = IdleAction.NONE,
+    /** Accesos de la tarjeta, en el orden en que se muestran. */
+    val shortcuts: List<IdleAction> = IdleAction.defaultShortcuts,
 
     // ── Apps ─────────────────────────────────────────────────────────
     val blockedApps: Set<String> = emptySet(),
