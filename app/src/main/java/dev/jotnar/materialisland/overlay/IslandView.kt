@@ -908,6 +908,8 @@ private fun rememberMediaPos(m: dev.jotnar.materialisland.model.MediaInfo): Long
 /** Play/pausa que cambia de forma: píldora en pausa, cuadrado redondeado sonando (como el Pixel). */
 @Composable
 private fun PlayPauseButton(playing: Boolean, container: Color, content: Color, height: Dp, onClick: () -> Unit) {
+    // Siempre el onClick más reciente: si no, se queda con el estado del primer toque y solo hace play o solo pausa.
+    val click by androidx.compose.runtime.rememberUpdatedState(onClick)
     val radius by animateDpAsState(if (playing) height / 3 else height / 2, spring(0.5f, 400f), label = "pp")
     val width by animateDpAsState(if (playing) height * 1.25f else height * 1.5f, spring(0.55f, 400f), label = "ppw")
     Box(
@@ -915,7 +917,7 @@ private fun PlayPauseButton(playing: Boolean, container: Color, content: Color, 
             .width(width).height(height)
             .clip(RoundedCornerShape(radius))
             .background(container)
-            .pointerInput(Unit) { detectTapGestures { onClick() } },
+            .pointerInput(Unit) { detectTapGestures { click() } },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -937,10 +939,11 @@ private fun MediaControls(
     ) {
         @Composable
         fun Side(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, cmd: MediaCmd) {
+            val current by androidx.compose.runtime.rememberUpdatedState(item)
             Box(
                 Modifier.size(Sp.avatar).clip(CircleShape)
                     .then(if (sideContainer != null) Modifier.background(sideContainer) else Modifier)
-                    .pointerInput(Unit) { detectTapGestures { cb.onMedia(item, cmd) } },
+                    .pointerInput(Unit) { detectTapGestures { cb.onMedia(current, cmd) } },
                 contentAlignment = Alignment.Center,
             ) { Icon(icon, desc, tint = iconTint, modifier = Modifier.size(26.dp)) }
         }

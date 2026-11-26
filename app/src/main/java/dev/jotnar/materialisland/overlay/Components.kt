@@ -142,6 +142,8 @@ fun WavyProgress(
 ) {
     var dragging by remember { mutableStateOf(false) }
     var dragFrac by remember { mutableFloatStateOf(0f) }
+    // La versión más reciente: al cambiar de canción, la búsqueda usa la duración nueva.
+    val seek by androidx.compose.runtime.rememberUpdatedState(onSeek)
     val amp by animateFloatAsState(if (animate && !dragging) 1f else 0f, spring(stiffness = 200f), label = "amp")
     val phase = if (animate) {
         val t = rememberInfiniteTransition(label = "wave")
@@ -151,12 +153,12 @@ fun WavyProgress(
 
     val gestures = if (onSeek != null) Modifier
         .pointerInput(Unit) {
-            detectTapGestures { o -> onSeek((o.x / size.width).coerceIn(0f, 1f)) }
+            detectTapGestures { o -> seek?.invoke((o.x / size.width).coerceIn(0f, 1f)) }
         }
         .pointerInput(Unit) {
             detectHorizontalDragGestures(
                 onDragStart = { o -> dragging = true; dragFrac = (o.x / size.width).coerceIn(0f, 1f) },
-                onDragEnd = { dragging = false; onSeek(dragFrac) },
+                onDragEnd = { dragging = false; seek?.invoke(dragFrac) },
                 onDragCancel = { dragging = false },
                 onHorizontalDrag = { change, _ ->
                     change.consume()
