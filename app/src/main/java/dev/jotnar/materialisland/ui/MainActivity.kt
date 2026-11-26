@@ -91,7 +91,7 @@ import dev.jotnar.materialisland.ui.screens.GesturesScreen
 import dev.jotnar.materialisland.ui.screens.SizeScreen
 import dev.jotnar.materialisland.ui.theme.AppTheme
 
-enum class Screen { HOME, APPEARANCE, SIZE, ANIMATION, ACTIVITIES, GESTURES, BEHAVIOR, APPS, BACKUP, ABOUT }
+enum class Screen { HOME, APPEARANCE, SIZE, ANIMATION, ACTIVITIES, GESTURES, BEHAVIOR, APPS, GLANCE, BACKUP, ABOUT }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,6 +126,7 @@ private fun App() {
             Screen.GESTURES -> GesturesScreen(back)
             Screen.BEHAVIOR -> BehaviorScreen(back)
             Screen.APPS -> AppsScreen(back)
+            Screen.GLANCE -> dev.jotnar.materialisland.ui.screens.GlanceScreen(back)
             Screen.BACKUP -> BackupScreen(back)
             Screen.ABOUT -> AboutScreen(back)
         }
@@ -272,6 +273,7 @@ private fun HomeScreen(go: (Screen) -> Unit) {
             { NavRow("Gestures", "Tap, hold, swipe", Icons.Rounded.TouchApp) { go(Screen.GESTURES) } },
             { NavRow("Behavior", "Hiding, auto-collapse, haptics", Icons.Rounded.Tune) { go(Screen.BEHAVIOR) } },
             { NavRow("Apps", "Choose which apps can use the island", Icons.Rounded.Apps) { go(Screen.APPS) } },
+            { NavRow("At a glance", "Weather, sports, finance and alerts", Icons.Rounded.AutoAwesome) { go(Screen.GLANCE) } },
         )
         Spacer(Modifier.height(12.dp))
         Group(

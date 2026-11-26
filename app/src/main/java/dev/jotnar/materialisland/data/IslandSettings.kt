@@ -24,6 +24,31 @@ enum class AccentMode(val label: String) {
     CUSTOM("Custom"),
 }
 
+/** Vistas de la tarjeta At a glance, en el orden en que se deslizan. */
+@Serializable
+enum class GlanceView(val label: String) {
+    WEATHER("Weather"),
+    SPORTS("Sports"),
+    FINANCE("Finance"),
+    ALERTS("Alerts"),
+}
+
+/** Ligas que se pueden seguir (rutas del marcador público de ESPN). */
+enum class League(val path: String, val label: String, val sport: String) {
+    UCL("soccer/uefa.champions", "Champions League", "soccer"),
+    EPL("soccer/eng.1", "Premier League", "soccer"),
+    LALIGA("soccer/esp.1", "LaLiga", "soccer"),
+    SERIEA("soccer/ita.1", "Serie A", "soccer"),
+    BUNDES("soccer/ger.1", "Bundesliga", "soccer"),
+    LIGUE1("soccer/fra.1", "Ligue 1", "soccer"),
+    MLS("soccer/usa.1", "MLS", "soccer"),
+    LIGAMX("soccer/mex.1", "Liga MX", "soccer"),
+    NBA("basketball/nba", "NBA", "basketball"),
+    NFL("football/nfl", "NFL", "football"),
+    MLB("baseball/mlb", "MLB", "baseball"),
+    NHL("hockey/nhl", "NHL", "hockey"),
+}
+
 /** Gestos sobre la isla cuando muestra algo. */
 @Serializable
 enum class GestureAction(val label: String) {
@@ -168,6 +193,20 @@ data class IslandSettings(
     val idleLongPress: IdleAction = IdleAction.NONE,
     /** Accesos de la tarjeta, en el orden en que se muestran. */
     val shortcuts: List<IdleAction> = IdleAction.defaultShortcuts,
+
+    // ── At a glance (lo único que usa internet) ──────────────────────
+    val glanceEnabled: Boolean = false,
+    val glanceViews: List<GlanceView> = GlanceView.entries,
+    /** Lugar del clima: se guarda al usar la ubicación o buscar una ciudad. */
+    val glanceLat: Double? = null,
+    val glanceLon: Double? = null,
+    val glancePlace: String = "",
+    val glanceFahrenheit: Boolean = false,
+    /** Rutas de [League] seguidas. */
+    val glanceLeagues: List<String> = listOf(League.UCL.path, League.EPL.path, League.NBA.path, League.NFL.path),
+    /** Equipos favoritos separados por comas (nombre o abreviatura). Vacío = todos los partidos. */
+    val glanceTeams: String = "",
+    val glanceSymbols: String = "^GSPC, AAPL, BTC-USD",
 
     // ── Apps ─────────────────────────────────────────────────────────
     val blockedApps: Set<String> = emptySet(),

@@ -14,7 +14,7 @@
   <img alt="Android 12+" src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203%20Expressive-4285F4?logo=jetpackcompose&logoColor=white">
-  <img alt="No internet permission" src="https://img.shields.io/badge/internet-none-111318">
+  <img alt="No tracking" src="https://img.shields.io/badge/tracking-none-111318">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0B57D0"></a>
 </p>
 
@@ -30,7 +30,11 @@ Material Island turns the camera cutout into a live surface for whatever is happ
 phone: music, calls, timers, navigation, downloads, verification codes and unread chats. It is
 made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
 
-It has **no internet permission**. Nothing you see in the island ever leaves the phone.
+Nothing you see in the island ever leaves the phone. The only part that goes online is **At a glance**, and only if
+you turn it on. It is an icon to the left of the camera that opens a card you can swipe through: weather from
+Open-Meteo, live scores from ESPN, quotes from Yahoo Finance, and alerts. No account and no tracking. If you're offline,
+only that card pauses and the rest of the island keeps working. On a Pixel, one button takes you to the launcher setting
+where you can turn Google's own At a glance on or off.
 
 ## See it in motion
 

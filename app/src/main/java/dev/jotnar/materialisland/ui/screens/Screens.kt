@@ -427,7 +427,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.\n\n" +
-                        "No internet permission: nothing leaves the phone.",
+                        "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, with no account or tracking.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }

@@ -99,10 +99,13 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         IslandUi(
             st, expanded = exp != null && exp == primary?.id, hidden = hide, replyingId = reply, copiedId = copied,
             shortcuts = exp == SHORTCUTS_ID && primary == null,
+            glance = exp == GLANCE_ID,
         )
     }.combine(IslandStore.unread) { u, unread -> u.copy(unread = unread) }
         .combine(fullMedia) { u, full -> u.copy(full = full && u.expanded && u.state.primary?.kind == Kind.MEDIA) }
-        .combine(shortcutTick) { u, t -> u.copy(shortcutTick = t) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
+        .combine(shortcutTick) { u, t -> u.copy(shortcutTick = t) }
+        .combine(dev.jotnar.materialisland.core.Glance.data) { u, g -> u.copy(glanceData = g) }
+        .combine(SettingsStore.flow) { u, st -> u.copy(glanceOn = st.glanceEnabled, glance = u.glance && st.glanceEnabled) }.stateIn(scope, SharingStarted.Eagerly, IslandUi(IslandStore.state.value, false, false))
 
     private var collapseJob: Job? = null
 
@@ -122,6 +125,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
             },
         )
         refreshLocked()
+        dev.jotnar.materialisland.core.Glance.start(service)
 
         // Llamada entrante → se abre sola.
         scope.launch { IslandStore.autoExpandRequests.collect { expand(it) } }
@@ -138,6 +142,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
     }
 
     fun stop() {
+        dev.jotnar.materialisland.core.Glance.stop()
         runCatching { service.unregisterReceiver(screenReceiver) }
         view?.let { runCatching { wm.removeViewImmediate(it) } }
         view = null
@@ -284,6 +289,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         val wasTransient = IslandStore.state.value.transient?.id == expandedId.value
         expandedId.value = null
         fullMedia.value = false
+        dev.jotnar.materialisland.core.Glance.cardOpen = false
         endReply()
         if (wasTransient) IslandStore.hold(false)
         if (!silent) Haptics.collapse()
@@ -295,9 +301,11 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         val secs = SettingsStore.current.autoCollapseSeconds
         val item = ui.value.state.primary
         // Las llamadas entrantes no se cierran solas.
-        if (secs <= 0 || (item?.kind == Kind.CALL && item.incoming)) return
+        if (secs <= 0 || (item?.kind == Kind.CALL && item.incoming && expandedId.value != GLANCE_ID)) return
+        // At a glance se lee con calma: al menos 15 s desde el último gesto.
+        val wait = if (expandedId.value == GLANCE_ID) maxOf(secs, 15) else secs
         collapseJob = scope.launch {
-            delay(secs * 1000L)
+            delay(wait * 1000L)
             if (replyingId.value == null) collapse()
         }
     }
@@ -375,8 +383,26 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         } else Actions.idle(service, service, action)
     }
 
+    override fun onGlanceTap() {
+        if (expandedId.value == GLANCE_ID) { collapse(); return }
+        fullMedia.value = false
+        endReply()
+        expandedId.value = GLANCE_ID
+        dev.jotnar.materialisland.core.Glance.cardOpen = true
+        dev.jotnar.materialisland.core.Glance.refresh()
+        Haptics.expand()
+        scheduleCollapse()
+    }
+
+    override fun onGlancePage() { Haptics.tick(); scheduleCollapse() }
+
     override fun onSwipe(item: IslandItem?, mode: Mode, dir: Swipe) {
         if (mode == Mode.REST || mode == Mode.HIDDEN) return
+        // At a glance: deslizar en vertical la cierra (en horizontal pasa de vista dentro de la tarjeta).
+        if (expandedId.value == GLANCE_ID) {
+            if (dir == Swipe.UP || dir == Swipe.DOWN) collapse()
+            return
+        }
         // La tarjeta de accesos no tiene actividad detrás: deslizar en vertical la cierra.
         if (expandedId.value == SHORTCUTS_ID && item == null) {
             if (dir == Swipe.UP || dir == Swipe.DOWN) collapse()
@@ -546,3 +572,5 @@ private fun IslandItem.isExpandableCharge() = kind == Kind.CHARGING && compactTe
 
 /** expandedId especial: la tarjeta de accesos que se abre desde la cámara en reposo. */
 private const val SHORTCUTS_ID = "island:shortcuts"
+/** expandedId especial: la tarjeta de At a glance (icono a la izquierda de la cámara). */
+private const val GLANCE_ID = "island:glance"

@@ -156,6 +156,11 @@ data class IslandUi(
     /** Tarjeta de accesos abierta desde la cámara en reposo. */
     val shortcuts: Boolean = false,
     val shortcutTick: Int = 0,
+    /** Icono de At a glance junto a la cámara (si está activado). */
+    val glanceOn: Boolean = false,
+    /** Tarjeta de At a glance abierta. */
+    val glance: Boolean = false,
+    val glanceData: dev.jotnar.materialisland.core.Glance.Data = dev.jotnar.materialisland.core.Glance.Data(),
 )
 
 interface IslandCallbacks {
@@ -176,12 +181,16 @@ interface IslandCallbacks {
     fun onBubbleTap(item: IslandItem) {}
     fun onBubbleLongPress(item: IslandItem) {}
     fun onBubbleOverflow() {}
+    fun onGlanceTap() {}
+    /** Se pasó de vista en la tarjeta de At a glance (reinicia el cierre automático). */
+    fun onGlancePage() {}
 }
 
 fun resolveMode(ui: IslandUi): Mode {
     val p = ui.state.primary
     return when {
         ui.hidden -> Mode.HIDDEN
+        ui.glance -> Mode.EXPANDED
         p == null -> if (ui.shortcuts) Mode.EXPANDED else Mode.REST
         p.kind == Kind.NOTIFICATION -> Mode.PEEK
         ui.expanded && p.kind == Kind.CHARGING -> Mode.EXPANDED
@@ -245,7 +254,7 @@ private fun palette(s: IslandSettings, item: IslandItem?, mode: Mode): IslandPal
 }
 
 /** Medidas derivadas de la cámara y la configuración. */
-private data class Dims(
+internal data class Dims(
     val pillH: Dp, val restD: Dp, val cameraW: Dp, val wing: Dp, val wideW: Dp, val cardW: Dp,
     val icon: Dp, val edgePad: Dp,
 )
@@ -258,7 +267,7 @@ private val Tabular = TextStyle(fontFeatureSettings = "tnum")
  * demás bordes · avatar de 46 · 8 entre ícono y texto · 2 entre líneas · 12 entre grupos y botones ·
  * botones de 40 · títulos de 16.
  */
-private object Sp {
+internal object Sp {
     val banner = 76.dp          // alto de una fila tipo banner
     val avatar = 46.dp          // avatar / elemento principal a la izquierda
     val action = 40.dp          // botones redondos y alto de los botones de acción
@@ -293,7 +302,7 @@ fun IslandView(
 @Composable
 private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb: IslandCallbacks, modifier: Modifier) {
     val density = LocalDensity.current
-    val primary = ui.state.primary
+    val primary = if (ui.glance) null else ui.state.primary
     val targetMode = resolveMode(ui)
     val drop = s.openStyle == OpenStyle.DROP
 
@@ -416,6 +425,9 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     var bubblesRect by remember { mutableStateOf<Rect?>(null) }
     val showBubbles = ui.unread.isNotEmpty() && (mode == Mode.REST || mode == Mode.COMPACT)
     val bubblesTouchable = showBubbles && bubblesIn.value == 0f
+    var glanceRect by remember { mutableStateOf<Rect?>(null) }
+    val showGlance = ui.glanceOn && (mode == Mode.REST || mode == Mode.COMPACT)
+    val glanceTouchable = showGlance && bubblesIn.value == 0f
 
     val secondary = ui.state.secondary
     val showSat = s.showSecondary && mode == Mode.COMPACT && secondary != null
@@ -427,7 +439,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
         s.idleDoubleTap != IdleAction.NONE || s.calibration
     // El doble toque retrasa el toque simple, así que solo se escucha en reposo y si está configurado.
     val doubleTapOn = mode == Mode.REST && s.idleDoubleTap != IdleAction.NONE
-    LaunchedEffect(mainRect, satRect, bubblesRect, mode, showSat, bubblesTouchable, idleTouchable) {
+    LaunchedEffect(mainRect, satRect, bubblesRect, glanceRect, mode, showSat, bubblesTouchable, glanceTouchable, idleTouchable) {
         val m = with(density) { 6.dp.toPx() }
         val rects = buildList {
             val touchMain = when (mode) {
@@ -438,6 +450,7 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
             if (touchMain && mainRect != Rect.Zero) add(mainRect.inflate(m).toAndroid())
             if (showSat) satRect?.let { add(it.inflate(m).toAndroid()) }
             if (bubblesTouchable) bubblesRect?.let { add(it.inflate(m).toAndroid()) }
+            if (glanceTouchable) glanceRect?.let { add(it.inflate(m).toAndroid()) }
         }
         cb.onBounds(rects)
     }
@@ -494,8 +507,8 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                             },
                 ) {
                     AnimatedContent(
-                        targetState = Frame(mode, primary),
-                        contentKey = { it.mode to it.item?.id },
+                        targetState = Frame(mode, primary, ui.glance),
+                        contentKey = { Triple(it.mode, it.item?.id, it.glance) },
                         transitionSpec = {
                             (fadeIn(tween(200, delayMillis = 70)) + scaleIn(spring(s.damping, stiff), initialScale = 0.92f))
                                 .togetherWith(fadeOut(tween(80)) + scaleOut(tween(120), targetScale = 0.96f))
@@ -510,7 +523,8 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                             Mode.HIDDEN, Mode.REST -> Box(Modifier.size(dims.restD))
                             Mode.COMPACT -> if (item != null) Compact(item, p, dims, s)
                             Mode.WIDE -> if (item != null) Wide(item, p, dims, ui.copiedId == item.id)
-                            Mode.PEEK, Mode.EXPANDED -> if (item != null) Card(item, p, dims, s, ui, cb, sizeSpec)
+                            Mode.PEEK, Mode.EXPANDED -> if (frame.glance) GlanceCard(s, p, dims, ui.glanceData, cb)
+                                else if (item != null) Card(item, p, dims, s, ui, cb, sizeSpec)
                                 else if (ui.shortcuts) ShortcutsCard(s, p, dims, ui.shortcutTick, cb)
                         }
                     }
@@ -557,6 +571,26 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                     )
                 }
             },
+            {
+                AnimatedVisibility(
+                    visible = showGlance,
+                    enter = scaleIn(spring(0.55f, 450f), transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)) + fadeIn(),
+                    exit = scaleOut(tween(150)) + fadeOut(tween(150)),
+                ) {
+                    GlanceChip(
+                        ui.glanceData, pillH - 12.dp, s, cb,
+                        Modifier
+                            .graphicsLayer {
+                                val k = bubblesIn.value
+                                scaleX = 1f - 0.8f * k; scaleY = 1f - 0.8f * k
+                                this.alpha = (1f - k * k).coerceIn(0f, 1f)
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)
+                            }
+                            .onGloballyPositioned { glanceRect = it.boundsInWindow() },
+                    )
+                }
+                if (!showGlance) LaunchedEffect(Unit) { glanceRect = null }
+            },
         ),
         modifier = modifier.fillMaxSize().then(
             if (drop && mode != Mode.HIDDEN) Modifier.drawBehind {
@@ -570,11 +604,12 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 )
             } else Modifier,
         ),
-    ) { (mainM, satM, bubM), constraints ->
+    ) { (mainM, satM, bubM, glM), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val main = mainM.firstOrNull()?.measure(loose)
         val sat = satM.firstOrNull()?.measure(loose)
         val bub = bubM.firstOrNull()?.measure(loose)
+        val gl = glM.firstOrNull()?.measure(loose)
         layout(constraints.maxWidth, constraints.maxHeight) {
             val topPx = top.roundToPx()
             if (main != null) {
@@ -583,23 +618,28 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 sat?.place(x + main.width + gapPx, topPx + (pillH.roundToPx() - sat.height) / 2)
                 // Burbujas a la izquierda, centradas con la cámara.
                 val centerY = if (drop) topPx + main.height / 2 else (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
-                if (bub != null) {
-                    // Sitio normal: a la izquierda de la isla. Guardadas: su borde derecho en el centro de la cámara.
-                    val k = if (drop) bubblesIn.value else 0f
-                    val camY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
-                    val bx = x - gapPx - bub.width
-                    val by = centerY - bub.height / 2
-                    bub.place(
-                        (bx + (cx - bub.width - bx) * k).roundToInt(),
-                        (by + (camY - bub.height / 2 - by) * k).roundToInt(),
+                // Sitio normal: a la izquierda de la isla. Guardadas: su borde derecho en el centro de la cámara.
+                val k = if (drop) bubblesIn.value else 0f
+                val camY = (geo.holeCenterYDp + s.offsetYDp).dp.roundToPx()
+                var leftEdge = x
+                fun placeLeft(pl: androidx.compose.ui.layout.Placeable) {
+                    val bx = leftEdge - gapPx - pl.width
+                    val by = centerY - pl.height / 2
+                    pl.place(
+                        (bx + (cx - pl.width - bx) * k).roundToInt(),
+                        (by + (camY - pl.height / 2 - by) * k).roundToInt(),
                     )
+                    leftEdge = bx
                 }
+                // Burbujas pegadas a la isla y, más a la izquierda, el icono de At a glance.
+                if (bub != null && bub.width > 0) placeLeft(bub)
+                if (gl != null) placeLeft(gl)
             }
         }
     }
 }
 
-private data class Frame(val mode: Mode, val item: IslandItem?)
+private data class Frame(val mode: Mode, val item: IslandItem?, val glance: Boolean = false)
 
 private fun Mode.isResting() = this == Mode.REST || this == Mode.HIDDEN
 
@@ -1387,7 +1427,7 @@ private fun Avatar(item: IslandItem, p: IslandPalette, size: Dp) {
 
 /** Una línea pequeña encima del título (app, estado, hora), como "iPhone" en la guía. */
 @Composable
-private fun Caption(text: String, color: Color) = Text(
+internal fun Caption(text: String, color: Color) = Text(
     text, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis,
 )
 
