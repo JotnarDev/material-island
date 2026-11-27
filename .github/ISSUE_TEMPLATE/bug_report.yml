@@ -1,0 +1,46 @@
+name: Bug report
+description: Something on the island or in the app doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report! Please blur anything personal (names, messages, locations) in screenshots.
+  - type: input
+    id: device
+    attributes:
+      label: Phone model
+      placeholder: Pixel 10 Pro, Redmi Note 12, Galaxy S25…
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version and skin
+      placeholder: Android 16, HyperOS 2.0
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Material Island version
+      description: Shown in About.
+      placeholder: "1.1.1"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or recording
+      description: Drag files here. For position problems, turn on Size & position → Calibration first.
+  - type: dropdown
+    id: style
+    attributes:
+      label: Open style
+      options: [Morph, Liquid drop, Not sure]

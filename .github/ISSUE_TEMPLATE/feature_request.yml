@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest something new for the island
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like the island to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it be useful?
+  - type: textarea
+    id: refs
+    attributes:
+      label: References
+      description: Mock-ups, screenshots or links to designs you like.

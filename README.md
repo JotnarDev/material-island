@@ -11,31 +11,42 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/JotnarDev/material-island/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/JotnarDev/material-island?color=1A73E8"></a>
+  <a href="https://github.com/JotnarDev/material-island/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/JotnarDev/material-island/total?color=3DDC84"></a>
+  <a href="https://github.com/JotnarDev/material-island/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/JotnarDev/material-island?color=FFC21A"></a>
+  <a href="https://github.com/JotnarDev/material-island/issues"><img alt="Issues" src="https://img.shields.io/github/issues/JotnarDev/material-island"></a>
   <img alt="Android 12+" src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white">
-  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white">
-  <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203%20Expressive-4285F4?logo=jetpackcompose&logoColor=white">
-  <img alt="No tracking" src="https://img.shields.io/badge/tracking-none-111318">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0B57D0"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/JotnarDev/material-island/releases/latest"><b>⬇ Download the latest APK</b></a>
+  <img src="docs/gifs/hero.gif" width="480" alt="Music card, an incoming call and the liquid drop animation on the island">
 </p>
+
+<p align="center">
+  <a href="https://github.com/JotnarDev/material-island/releases/latest"><img alt="Download APK" height="40" src="https://img.shields.io/github/v/release/JotnarDev/material-island?style=for-the-badge&label=Download%20APK&logo=android&logoColor=white&color=1A73E8"></a>
+  &nbsp;
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/JotnarDev/material-island"><img alt="Get it on Obtainium" height="40" src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"></a>
+  <br>
+  <sub>Android 12+ · ~3 MB · no account · updates itself from GitHub</sub>
+</p>
+
+<p align="center">If you like it, a ⭐ helps more people find it.</p>
 
 <p align="center">🇪🇸 <a href="README.es.md">Versión en español</a></p>
 
 ---
 
-Material Island turns the camera cutout into a live surface for whatever is happening on your
-phone: music, calls, timers, navigation, downloads, verification codes and unread chats. It is
-made for the Pixel 10 Pro and runs on any phone with Android 12 or newer.
+Material Island turns the camera cutout into a live surface for whatever is happening on your phone: music, calls,
+timers, navigation, downloads, charging, verification codes, unread chats, plus weather, scores and stocks with
+**At a glance**. It runs on any phone with Android 12 or newer, including Xiaomi, Redmi and POCO.
 
-Nothing you see in the island ever leaves the phone. The only part that goes online is **At a glance**, and only if
-you turn it on. It is an icon to the left of the camera that opens a card you can swipe through: weather from
-Open-Meteo, live scores from ESPN, quotes from Yahoo Finance, and alerts. No account and no tracking. If you're offline,
-only that card pauses and the rest of the island keeps working. The app can also check GitHub for a new version
-when you open it and update itself (you can turn that off in About). On a Pixel, one button takes you to the launcher setting
-where you can turn Google's own At a glance on or off.
+## Why these permissions?
+
+- **Notification access** reads the notifications of apps that are playing, calling, timing or navigating, so the island can show them. Nothing is stored or sent anywhere.
+- **Accessibility service** is only used to draw the island over the status bar and to know which app is in front (to hide music while its own app is open). It never reads what's on your screen.
+- **ADB is optional.** It only skips Android's "restricted settings" screen and enables extras like *Island first*.
+- **You can check all of this.** The code is open: see [How it works](#how-it-works) and [`service/`](app/src/main/java/dev/jotnar/materialisland/service/).
 
 ## See it in motion
 
@@ -87,7 +98,9 @@ where you can turn Google's own At a glance on or off.
 | **Downloads & Live Updates** | Progress ring | Wavy progress bar plus actions (Android 16 promoted notifications) |
 | **Messages** | Unread chats as bubbles to the left of the island | Read and reply without leaving the app you're in |
 | **Verification codes** | Wide pill showing the code; tap to copy | — |
-| **System** | Charging, low battery, Bluetooth, ringer mode, airplane mode, headphones | — |
+| **Charging** | Wavy ring with the level counting up | Time to full, normal or fast, cable or wireless, watts, temperature |
+| **At a glance** | Weather, live score, stock move or alert count next to the camera; swipe to switch | Weather with the next hours, live scores, your stocks with real logos, alerts |
+| **System** | Low battery, Bluetooth, ringer mode, airplane mode, headphones | — |
 
 And also:
 
@@ -158,6 +171,13 @@ Optionally, hide Android's own notification icons from the status bar, since the
 adb shell cmd statusbar send-disable-flag notification-icons   # use "none" to bring them back
 ```
 
+## Privacy and internet
+
+- The island itself never goes online, never tracks you and never shows ads. There is no account and no analytics.
+- **At a glance** is the only feature that uses the internet, and only if you turn it on: weather from Open-Meteo, scores from ESPN, quotes from Yahoo Finance, and company logos from Google's icon service (cached on the phone). Offline, only that card pauses.
+- The app can check GitHub for a new version when you open it. You can turn that off in **About**.
+- On a Pixel, one button in At a glance settings takes you to the launcher setting where you can turn Google's own At a glance on or off.
+
 ## How it works
 
 - **The window** is a `TYPE_ACCESSIBILITY_OVERLAY` owned by an accessibility service. That lets it
@@ -214,6 +234,24 @@ Kotlin 2.4 · Jetpack Compose (BOM 2026.11) · Material 3 Expressive (`MaterialS
 The logo, **Split**, shows the island and the camera dot pulling apart, caught mid-spring. That is
 the same gesture the island makes when a second activity pops out beside it. The logo files, colours
 and usage guide are in [`brand/`](brand/).
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[good first issues](https://github.com/JotnarDev/material-island/labels/good%20first%20issue). The
+[project map](#project-map) and its quick recipes show where each part lives.
+
+## Support the project
+
+Every feature is free, and the island will never show ads. The current goal is to cover the Google Play developer
+fee so Material Island can be installed and updated from the Play Store. If ads are ever added to fund development,
+they will only appear in the settings screens, never on the island.
+
+Ways to help:
+
+- **Star** the repo and share it.
+- **Report bugs** with your phone model. Every new device helps.
+- **Donate** on Ko-fi (link coming soon).
 
 ## Credits
 
