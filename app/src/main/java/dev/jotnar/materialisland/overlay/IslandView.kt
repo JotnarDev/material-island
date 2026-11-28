@@ -315,7 +315,9 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
     val density = LocalDensity.current
     val primary = if (ui.glance) null else ui.state.primary
     val targetMode = resolveMode(ui)
-    val drop = s.openStyle == OpenStyle.DROP
+    val bar = s.openStyle == OpenStyle.BAR
+    // La barra usa toda la animación de la gota; además, en reposo se extiende de borde a borde.
+    val drop = s.openStyle == OpenStyle.DROP || bar
 
     // Estilo "gota": la isla no cambia de forma sobre la cámara. Una gota (tamaño de reposo) se
     // estira desde la cámara con un cuello líquido, se suelta, cae rebotando y al aterrizar se abre.
@@ -368,11 +370,18 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
         else bubblesIn.snapTo(1f)
     }
     suspend fun releaseBubbles() = bubblesIn.animateTo(0f, spring(dampingRatio = 0.55f, stiffness = 420f * s.speed))
-    LaunchedEffect(targetMode, drop, restTop, dropTop) {
-        if (!drop) { mode = targetMode; lowered = false; bubblesIn.snapTo(0f); return@LaunchedEffect }
+    // Barra: 1 = de borde a borde, 0 = recogida dentro de la cámara.
+    val barK = remember { Animatable(if (bar && targetMode.isResting()) 1f else 0f) }
+    suspend fun barIn() = barK.animateTo(0f, tween((260 / s.speed).toInt(), easing = CubicBezierEasing(0.6f, 0f, 0.9f, 0.6f)))
+    suspend fun barOut() = barK.animateTo(1f, spring(dampingRatio = 0.62f, stiffness = 260f * s.speed))
+    LaunchedEffect(targetMode, drop, bar, restTop, dropTop) {
+        if (!drop) { mode = targetMode; lowered = false; bubblesIn.snapTo(0f); barK.snapTo(0f); return@LaunchedEffect }
+        if (!bar) barK.snapTo(0f)
         val wantDown = !targetMode.isResting()
         when {
             wantDown && !lowered -> {
+                // Barra: primero se recoge hacia la cámara, como si la absorbiera; luego cae la gota.
+                if (bar && barK.value > 0f) { launch { stowBubbles() }; barIn() }
                 // La gota empieza a estirarse cuando las burbujas ya casi están dentro.
                 val stow = launch { stowBubbles() }
                 delay((130 / s.speed).toLong())
@@ -394,11 +403,13 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 launch { dropAnim.animateTo(restTop, spring(dampingRatio = 0.62f, stiffness = stiff * 0.8f)) }
                 delay((300 / s.speed).toLong())
                 lowered = false; mode = targetMode
+                if (bar) launch { barOut() }
                 releaseBubbles()
             }
             else -> {
                 mode = targetMode
                 if (!dropAnim.isRunning) dropAnim.snapTo(if (lowered) dropTop else restTop)
+                if (bar && !wantDown && barK.value < 1f && !barK.isRunning) launch { barOut() }
                 if (bubblesIn.value != 0f) releaseBubbles()
             }
         }
@@ -475,6 +486,25 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
 
     Layout(
         contents = listOf(
+            {
+                // Estilo barra: de borde a borde en reposo, con la hora y la batería. Sin toques: deja bajar las notificaciones.
+                if (bar && mode != Mode.HIDDEN && barK.value > 0.001f) {
+                    val k = barK.value.coerceIn(0f, 1.04f)
+                    val contentA = ((k - 0.7f) / 0.3f).coerceIn(0f, 1f)
+                    Box(
+                        Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha },
+                    ) {
+                        Row(
+                            Modifier.fillMaxSize().padding(horizontal = 16.dp).graphicsLayer { this.alpha = contentA },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BarClock(Color.White)
+                            Spacer(Modifier.weight(1f))
+                            BarBattery(Color.White)
+                        }
+                    }
+                }
+            },
             {
                 // El contenedor lleva fondo, forma y gestos; AnimatedContent solo anima tamaño y contenido.
                 Box(
@@ -608,6 +638,20 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
             },
         ),
         modifier = modifier.fillMaxSize().then(
+            if (bar && mode != Mode.HIDDEN && barK.value > 0.001f) Modifier.drawBehind {
+                val k = barK.value.coerceIn(0f, 1.04f)
+                val r = dims.restD.toPx() / 2
+                val margin = s.barMarginDp.dp.toPx()
+                val l = (cx - r) + (margin - (cx - r)) * k
+                val rgt = (cx + r) + (size.width - margin - (cx + r)) * k
+                val h = dims.restD.toPx() + (pillH.toPx() - dims.restD.toPx()) * k.coerceAtMost(1f)
+                val camY = (holeTop + s.offsetYDp.dp).toPx()
+                drawRoundRect(
+                    Color.Black.copy(alpha = alpha), topLeft = Offset(l, camY - h / 2), size = androidx.compose.ui.geometry.Size(rgt - l, h),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2),
+                )
+            } else Modifier,
+        ).then(
             if (drop && mode != Mode.HIDDEN) Modifier.drawBehind {
                 drawLiquidNeck(
                     cx = cx.toFloat(),
@@ -619,13 +663,27 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                 )
             } else Modifier,
         ),
-    ) { (mainM, satM, bubM, glM), constraints ->
+    ) { (barM, mainM, satM, bubM, glM), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        // La barra crece desde la cámara (círculo) hasta los bordes (píldora del alto de la barra de estado).
+        val barPl = barM.firstOrNull()?.let { m ->
+            val k = barK.value.coerceIn(0f, 1.04f)
+            val r = dims.restD.toPx() / 2
+            val margin = s.barMarginDp.dp.toPx()
+            val l = (cx - r) + (margin - (cx - r)) * k
+            val rgt = (cx + r) + (constraints.maxWidth - margin - (cx + r)) * k
+            val h = dims.restD.toPx() + (pillH.toPx() - dims.restD.toPx()) * k.coerceAtMost(1f)
+            Triple(m.measure(androidx.compose.ui.unit.Constraints.fixed((rgt - l).roundToInt().coerceAtLeast(1), h.roundToInt().coerceAtLeast(1))), l, h)
+        }
         val main = mainM.firstOrNull()?.measure(loose)
         val sat = satM.firstOrNull()?.measure(loose)
         val bub = bubM.firstOrNull()?.measure(loose)
         val gl = glM.firstOrNull()?.measure(loose)
         layout(constraints.maxWidth, constraints.maxHeight) {
+            barPl?.let { (pl, l, h) ->
+                val camY = (geo.holeCenterYDp + s.offsetYDp).dp.toPx()
+                pl.place(l.roundToInt(), (camY - h / 2).roundToInt())
+            }
             val topPx = top.roundToPx()
             if (main != null) {
                 val x = (cx - main.width / 2).coerceIn(0, (constraints.maxWidth - main.width).coerceAtLeast(0))

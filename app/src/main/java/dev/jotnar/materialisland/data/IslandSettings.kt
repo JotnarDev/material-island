@@ -97,6 +97,8 @@ enum class IdleAction(val label: String) {
 enum class OpenStyle(val label: String) {
     MORPH("Morph"),
     DROP("Liquid drop"),
+    /** Como la gota, pero en reposo es una barra de borde a borde (con hora y batería) que se contrae hacia la cámara. */
+    BAR("Liquid bar"),
 }
 
 enum class NotificationMode(val label: String) {
@@ -146,6 +148,8 @@ data class IslandSettings(
     val openStyle: OpenStyle = OpenStyle.MORPH,
     /** Separación entre la cámara y la isla en el estilo DROP. */
     val dropGapDp: Float = 8f,
+    /** Estilo BAR: margen de la barra con los bordes de la pantalla. */
+    val barMarginDp: Float = 6f,
 
     // ── Actividades ──────────────────────────────────────────────────
     val calls: Boolean = true,

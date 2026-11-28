@@ -174,15 +174,22 @@ fun AnimationScreen(onBack: () -> Unit) {
                     set { it.copy(openStyle = v) }
                 }
             },
-            *(if (s.openStyle == OpenStyle.DROP) arrayOf<@Composable () -> Unit>({
+            *(if (s.openStyle != OpenStyle.MORPH) arrayOf<@Composable () -> Unit>({
                 SliderRow(
                     "Drop distance", s.dropGapDp, 2f..24f, { "${it.roundToInt()} dp" },
                     subtitle = "Gap between the camera and the island",
                 ) { v -> set { it.copy(dropGapDp = v) } }
             }) else emptyArray()),
+            *(if (s.openStyle == OpenStyle.BAR) arrayOf<@Composable () -> Unit>({
+                SliderRow(
+                    "Bar margin", s.barMarginDp, 0f..24f, { "${it.roundToInt()} dp" },
+                    subtitle = "Space between the bar and the screen edges",
+                ) { v -> set { it.copy(barMarginDp = v) } }
+            }) else emptyArray()),
         )
         Text(
-            if (s.openStyle == OpenStyle.DROP) "A drop pulls away from the camera on a liquid neck, falls, bounces and opens into the island below it."
+            if (s.openStyle == OpenStyle.BAR) "At rest, a black bar covers the status bar from edge to edge with the time and battery. When something happens it shrinks into the camera and a drop falls out of it."
+            else if (s.openStyle == OpenStyle.DROP) "A drop pulls away from the camera on a liquid neck, falls, bounces and opens into the island below it."
             else "The camera hole stretches into a pill, like a classic dynamic island.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
