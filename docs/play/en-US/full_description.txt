@@ -1,0 +1,32 @@
+Material Island turns the camera cutout into a live surface for whatever is happening on your phone. It follows the Pixel look: Material You colours, Material 3 Expressive shapes and spring animations.
+
+What shows up in the island
+
+• Music: a small pill, a card with controls, then full album art on a blurred background
+• Calls: answer or decline from the island, with the call timer while you talk
+• Timers, stopwatches and navigation with live progress
+• Downloads and other progress notifications
+• Charging: a wavy ring and a card with time to full, speed and temperature
+• Verification codes: copy the code with one tap
+• Unread chats as small bubbles next to the camera
+• At a glance (optional): weather, live sports scores, stocks and alerts
+• Shortcuts: tap the camera at rest to open a card with the shortcuts you choose
+
+Make it yours
+
+• Two open styles: Morph, or Liquid drop, where a drop stretches off the camera and opens
+• Size and position calibration for your camera hole
+• Gestures: tap, long press and swipe actions
+• Choose which apps and which activities can use the island
+• Back up and restore your settings
+
+Permissions
+
+• Notification access to show music, calls, timers and other activities. Nothing is stored or sent anywhere.
+• Accessibility service, used only to draw the island over the status bar and to know which app is in front. It never reads what is on your screen. The app shows a notice explaining this before you turn it on.
+• Internet is only used by At a glance, and only if you turn it on.
+
+Network services
+At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo, scores from ESPN and quotes from Yahoo Finance, and company logos from Google's favicon service. The rest of the app works fully offline.
+
+Works on Android 12 and newer, including Xiaomi, Redmi and POCO phones. Free, with no account. A small ad appears only in the settings screens, never on the island itself. Prefer no ads at all? The open-source version on GitHub and F-Droid has none.

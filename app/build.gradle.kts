@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -29,7 +31,21 @@ android {
         }
     }
 
-    // Dos versiones:
+    // Clave de subida a Google Play (fuera del repo, en ../material-island-keys/upload.properties).
+    // Si no está (CI, otros desarrolladores), la versión play se firma con la clave de debug.
+    val uploadProps = rootProject.file("../material-island-keys/upload.properties")
+        .takeIf { it.exists() }
+        ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
+    signingConfigs {
+        if (uploadProps != null) create("upload") {
+            storeFile = file(uploadProps.getProperty("storeFile"))
+            storePassword = uploadProps.getProperty("storePassword")
+            keyAlias = uploadProps.getProperty("keyAlias")
+            keyPassword = uploadProps.getProperty("keyPassword")
+        }
+    }
+
+    // Tres versiones:
     //  · foss: la de GitHub, Obtainium, F-Droid e IzzyOnDroid. Sin anuncios ni código de Google; se actualiza sola.
     //  · fdroid: la que compila F-Droid. Como foss pero sin actualizador (actualiza F-Droid).
     //  · play: para Google Play. Anuncios solo en las pantallas de ajustes (nunca en la isla); la actualiza Play.
@@ -47,7 +63,7 @@ android {
         }
         create("play") {
             dimension = "store"
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
             buildConfigField("boolean", "SELF_UPDATE", "false")
             // IDs de PRUEBA de AdMob. Antes de publicar en Play, cambiarlos por los de tu cuenta de AdMob.
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"

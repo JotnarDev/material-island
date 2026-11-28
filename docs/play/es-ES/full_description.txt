@@ -1,0 +1,32 @@
+Material Island convierte el agujero de la cámara en una superficie viva con lo que está pasando en tu teléfono. Sigue el estilo Pixel: colores Material You, formas Material 3 Expressive y animaciones con muelles.
+
+Qué aparece en la isla
+
+• Música: una píldora, una tarjeta con controles y la carátula completa sobre un fondo difuminado
+• Llamadas: contesta o rechaza desde la isla, con el tiempo de llamada mientras hablas
+• Temporizadores, cronómetros y navegación con progreso en vivo
+• Descargas y otras notificaciones de progreso
+• Carga: un anillo ondulado y una tarjeta con tiempo restante, velocidad y temperatura
+• Códigos de verificación: cópialos con un toque
+• Chats sin leer como burbujas junto a la cámara
+• At a glance (opcional): tiempo, marcadores en vivo, bolsa y alertas
+• Accesos directos: toca la cámara en reposo para abrir los que elijas
+
+A tu gusto
+
+• Dos estilos de apertura: Morph o Gota líquida
+• Calibración del tamaño y la posición para tu cámara
+• Gestos: toque, pulsación larga y deslizamiento
+• Elige qué apps y qué actividades usan la isla
+• Copia de seguridad de los ajustes
+
+Permisos
+
+• Acceso a notificaciones para mostrar música, llamadas, temporizadores y demás. No se guarda ni se envía nada.
+• Servicio de accesibilidad, solo para dibujar la isla sobre la barra de estado y saber qué app está delante. Nunca lee lo que hay en tu pantalla. La app lo explica antes de que lo actives.
+• Internet solo lo usa At a glance, y solo si lo activas.
+
+Servicios de red
+At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo, los marcadores de ESPN, las cotizaciones de Yahoo Finance y los logos de empresas del servicio de favicons de Google. El resto de la app funciona sin conexión.
+
+Funciona en Android 12 o superior, también en Xiaomi, Redmi y POCO. Gratis y sin cuenta. Solo hay un pequeño anuncio en las pantallas de ajustes, nunca en la isla. ¿Prefieres sin anuncios? La versión de código abierto de GitHub y F-Droid no tiene ninguno.
