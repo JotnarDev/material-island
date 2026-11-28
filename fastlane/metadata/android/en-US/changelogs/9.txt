@@ -1,0 +1,5 @@
+- The app is now in Spanish too (follows the phone, or pick it per app).
+- Setup guide: a step-by-step wizard for the permissions.
+- Liquid bar: a full-width bar with a Pixel-style status bar that shrinks into the camera.
+- Choose the bar items: network speed, temperature, RAM and more.
+- Bluetooth speakers and laptops get their own illustration.

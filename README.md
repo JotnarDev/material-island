@@ -100,10 +100,16 @@ timers, navigation, downloads, charging, verification codes, unread chats, plus 
 | **Verification codes** | Wide pill showing the code; tap to copy | — |
 | **Charging** | Wavy ring with the level counting up | Time to full, normal or fast, cable or wireless, watts, temperature |
 | **At a glance** | Weather, next event, live score or alert count next to the camera; swipe to switch | Weather with the next hours, next event from Google Calendar with a join button, live scores, alerts |
-| **System** | Low battery, Bluetooth, ringer mode, airplane mode, headphones | — |
+| **Rides & deliveries** | Vehicle and arrival time | Route with stages, driver and plate (Uber, DiDi, Rappi, DoorDash, Amazon…) |
+| **Bluetooth** | Device and battery | Animated earbuds, headphones, speaker or laptop with left, right and case levels |
+| **Privacy** | Green dot while the camera or microphone is in use | Which sensor and the app that was open |
+| **System** | Low battery, ringer mode, airplane mode, wired headphones | — |
 
 And also:
 
+- **Three open styles.** *Morph* stretches the camera hole into a pill, *Liquid drop* drips the island out of the camera, and *Liquid bar* covers the status bar edge to edge with a Pixel-style clock, battery, signal and the items you pick (network speed, temperature, RAM…), then shrinks into the camera when something happens.
+- **English and Spanish.** Follows the phone's language, or pick it for the app alone in Android's settings.
+- **Setup guide.** A short wizard on first launch walks you through each permission.
 - **Island first.** Turns off the system's pop-up notifications so the island is the only alert surface. They come back by themselves if the island stops.
 - A **second activity** sits next to the island as a small bubble. Tap it to swap.
 - **Configurable gestures** on the island (tap, hold, swipe in every direction) and on the resting camera (flashlight, screenshot, quick settings…).

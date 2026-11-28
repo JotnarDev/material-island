@@ -1,0 +1,5 @@
+- La app ahora también está en español (sigue al teléfono o se elige por app).
+- Guía de configuración: un asistente paso a paso para los permisos.
+- Barra líquida: una barra de borde a borde con barra de estado al estilo Pixel que se recoge en la cámara.
+- Elige qué muestra la barra: velocidad de red, temperatura, RAM y más.
+- Parlantes y laptops Bluetooth con su propia ilustración.

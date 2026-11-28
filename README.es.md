@@ -77,12 +77,20 @@ clima, marcadores y bolsa. Funciona en cualquier Android 12 o superior, también
 | Mensajes | — | Aviso con respuesta rápida desde la isla |
 | Códigos (OTP) | Píldora ancha con el código; tocar = copiar | — |
 | Carga | Anillo ondulado con el porcentaje subiendo | Tiempo hasta el 100 %, normal o rápida, cable o inalámbrica, vatios, temperatura |
-| At a glance | Clima, marcador en vivo, variación de bolsa o número de alertas junto a la cámara; desliza para cambiar | Clima con las próximas horas, marcadores en vivo, tus acciones con sus logos, alertas |
-| Sistema | Batería baja, Bluetooth, modo de sonido, avión, auriculares | — |
+| At a glance | Clima, próximo evento, marcador en vivo o número de alertas junto a la cámara; desliza para cambiar | Clima con las próximas horas, próximo evento de Google Calendar con botón para unirte, marcadores en vivo, alertas |
+| Viajes y pedidos | Vehículo y hora de llegada | Ruta por etapas, conductor y matrícula (Uber, DiDi, Rappi, DoorDash, Amazon…) |
+| Bluetooth | Aparato y batería | Audífonos, auriculares, parlante o laptop animados, con izquierdo, derecho y estuche |
+| Privacidad | Punto verde mientras se usa la cámara o el micrófono | Qué sensor y qué app estaba abierta |
+| Sistema | Batería baja, modo de sonido, avión, auriculares con cable | — |
 
 Además: burbujas de mensajes sin leer a la izquierda de la isla (tocar = leer/responder en la isla, mantener = abrir la app), segunda actividad como burbuja al lado (tócala para cambiar), gestos configurables,
 gestos sobre la cámara en reposo (linterna, captura…), se oculta en horizontal / pantalla completa,
 respeta No molestar y vibra con las primitivas hápticas del Pixel.
+
+Tres estilos de apertura: *Estirar* (el agujero de la cámara se estira en una píldora), *Gota líquida* y *Barra líquida*
+(una barra negra de borde a borde con hora, batería, señal y lo que elijas —velocidad de red, temperatura, RAM…— que se recoge
+en la cámara cuando pasa algo). La app está en inglés y español (sigue el idioma del teléfono o se elige solo para la app) y trae
+una guía de configuración paso a paso al abrirla por primera vez.
 
 ## Mapa del código
 
@@ -173,7 +181,7 @@ adb shell cmd statusbar send-disable-flag notification-icons   # "none" para vol
 ## Privacidad e internet
 
 - La isla en sí nunca usa internet, nunca te rastrea y nunca muestra anuncios. No hay cuenta ni analíticas.
-- **At a glance** es lo único que usa internet, y solo si lo activas: clima de Open-Meteo, marcadores de ESPN, bolsa de Yahoo Finance y logos de empresas del servicio de iconos de Google (guardados en el teléfono). Sin conexión, solo esa tarjeta se pausa.
+- **At a glance** es lo único que usa internet, y solo si lo activas: clima de Open-Meteo y marcadores de ESPN. El calendario se lee en el teléfono y nunca sale de él. Sin conexión, solo el clima y los marcadores se pausan.
 - La app puede mirar en GitHub si hay versión nueva al abrirla. Se puede apagar en **About**.
 - En Pixel, un botón en los ajustes de At a glance te lleva al ajuste del launcher para encender o apagar el At a glance de Google.
 

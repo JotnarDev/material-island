@@ -48,7 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import dev.jotnar.materialisland.i18n.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,12 +99,30 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Solo hace algo en la versión de Play (consentimiento y anuncios de las pantallas de ajustes).
         dev.jotnar.materialisland.ads.Ads.init(this)
+        dev.jotnar.materialisland.i18n.Tr.update(resources.configuration)
         setContent { AppTheme { App() } }
     }
 }
 
 @Composable
 private fun App() {
+    val ctx = LocalContext.current
+    // Asistente de bienvenida: solo la primera vez y si aún faltan los permisos principales.
+    var onboarding by rememberSaveable {
+        val p = readPerms(ctx)
+        val needed = !dev.jotnar.materialisland.data.SettingsStore.current.onboardingDone && !(p.notifications && p.accessibility)
+        if (!needed && !dev.jotnar.materialisland.data.SettingsStore.current.onboardingDone) {
+            dev.jotnar.materialisland.data.SettingsStore.update { it.copy(onboardingDone = true) }
+        }
+        mutableStateOf(needed)
+    }
+    if (onboarding) {
+        OnboardingScreen {
+            dev.jotnar.materialisland.data.SettingsStore.update { it.copy(onboardingDone = true) }
+            onboarding = false
+        }
+        return
+    }
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     BackHandler(screen != Screen.HOME) { screen = Screen.HOME }
     val back = { screen = Screen.HOME }
@@ -130,14 +148,14 @@ private fun App() {
             Screen.APPS -> AppsScreen(back)
             Screen.GLANCE -> dev.jotnar.materialisland.ui.screens.GlanceScreen(back)
             Screen.BACKUP -> BackupScreen(back)
-            Screen.ABOUT -> AboutScreen(back)
+            Screen.ABOUT -> AboutScreen(back) { onboarding = true }
         }
     }
 }
 
 // ── Permisos ──────────────────────────────────────────────────────────
 
-private data class Perms(
+internal data class Perms(
     val notifications: Boolean,
     val accessibility: Boolean,
     val battery: Boolean,
@@ -146,7 +164,7 @@ private data class Perms(
     val restricted: Boolean,
 )
 
-private val isXiaomi = Build.MANUFACTURER.lowercase() in setOf("xiaomi", "redmi", "poco")
+internal val isXiaomi = Build.MANUFACTURER.lowercase() in setOf("xiaomi", "redmi", "poco")
 
 /**
  * ¿Está activo el bloqueo de "ajuste restringido"? Se lee la operación oculta
@@ -165,18 +183,18 @@ private fun restrictedSettingsBlocked(ctx: Context): Boolean {
 }
 
 /** Abre la pantalla de "Inicio automático" de MIUI/HyperOS; si no existe, la info de la app. */
-private fun openXiaomiAutostart(ctx: Context) {
+internal fun openXiaomiAutostart(ctx: Context) {
     val autostart = Intent().setComponent(
         ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { ctx.startActivity(autostart) }.onFailure { openAppInfo(ctx) }
 }
 
-private fun openAppInfo(ctx: Context) = ctx.startActivity(
+internal fun openAppInfo(ctx: Context) = ctx.startActivity(
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")),
 )
 
-private fun readPerms(ctx: Context): Perms {
+internal fun readPerms(ctx: Context): Perms {
     val listeners = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners").orEmpty()
     val a11y = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
     val pm = ctx.getSystemService(PowerManager::class.java)
@@ -355,7 +373,7 @@ private fun PermRow(
 
 /** Aviso cuando Android bloquea los interruptores de accesibilidad / notificaciones. */
 @Composable
-private fun RestrictedCard(onUnblock: () -> Unit) {
+internal fun RestrictedCard(onUnblock: () -> Unit) {
     Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -365,9 +383,10 @@ private fun RestrictedCard(onUnblock: () -> Unit) {
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Apps installed from an APK can't get accessibility or notification access until you allow it. " +
-                    "Tap Unblock, then the ⋮ menu (top right) → Allow restricted settings. " +
-                    if (isXiaomi) "On Xiaomi, try turning the switch on once first so the option appears." else "",
+                dev.jotnar.materialisland.i18n.tr(
+                    "Apps installed from an APK can't get accessibility or notification access until you allow it. " +
+                        "Tap Unblock, then the ⋮ menu (top right) → Allow restricted settings. ",
+                ) + if (isXiaomi) dev.jotnar.materialisland.i18n.tr("On Xiaomi, try turning the switch on once first so the option appears.") else "",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Spacer(Modifier.height(12.dp))

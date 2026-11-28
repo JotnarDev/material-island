@@ -228,6 +228,8 @@ data class IslandSettings(
 
     /** El usuario aceptó el aviso de uso de la API de accesibilidad. */
     val a11yDisclosureAccepted: Boolean = false,
+    /** Asistente de bienvenida terminado (o saltado). */
+    val onboardingDone: Boolean = false,
 
     /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). Solo si el usuario lo eligió. */
     val autoUpdateCheck: Boolean = false,

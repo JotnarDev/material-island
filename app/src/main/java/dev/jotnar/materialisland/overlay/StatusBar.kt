@@ -47,7 +47,7 @@ import androidx.compose.material.icons.rounded.SignalWifi0Bar
 import androidx.compose.material.icons.rounded.SignalWifi4Bar
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import dev.jotnar.materialisland.i18n.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect

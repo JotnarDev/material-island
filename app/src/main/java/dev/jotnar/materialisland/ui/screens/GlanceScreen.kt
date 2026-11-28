@@ -24,7 +24,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import dev.jotnar.materialisland.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -82,7 +82,7 @@ fun GlanceScreen(onBack: () -> Unit) {
             }.getOrNull()
         }
         if (loc == null) {
-            Toast.makeText(ctx, "No location yet. Search for your city instead.", Toast.LENGTH_LONG).show(); return@launch
+            Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("No location yet. Search for your city instead."), Toast.LENGTH_LONG).show(); return@launch
         }
         val name = withContext(Dispatchers.IO) {
             runCatching {
@@ -95,12 +95,12 @@ fun GlanceScreen(onBack: () -> Unit) {
         set { it.copy(glanceLat = "%.2f".format(Locale.US, loc.latitude).toDouble(), glanceLon = "%.2f".format(Locale.US, loc.longitude).toDouble(), glancePlace = name) }
     }
     val calLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (!ok) Toast.makeText(ctx, "Without calendar access this view stays empty.", Toast.LENGTH_SHORT).show()
+        if (!ok) Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("Without calendar access this view stays empty."), Toast.LENGTH_SHORT).show()
         Glance.refresh()
     }
     fun calAllowed() = ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) useLocation() else Toast.makeText(ctx, "Search for your city instead.", Toast.LENGTH_SHORT).show()
+        if (ok) useLocation() else Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("Search for your city instead."), Toast.LENGTH_SHORT).show()
     }
 
     SettingsScaffold("At a glance", onBack) {
@@ -129,7 +129,7 @@ fun GlanceScreen(onBack: () -> Unit) {
                 scope.launch {
                     val r = withContext(Dispatchers.IO) { Glance.searchCity(city) }
                     busy = false
-                    if (r == null) Toast.makeText(ctx, "City not found (or no internet).", Toast.LENGTH_SHORT).show()
+                    if (r == null) Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("City not found (or no internet)."), Toast.LENGTH_SHORT).show()
                     else { set { it.copy(glanceLat = r.second, glanceLon = r.third, glancePlace = r.first) }; city = "" }
                 }
             }
@@ -221,7 +221,7 @@ fun GlanceScreen(onBack: () -> Unit) {
                         val fallback = Intent().setComponent(ComponentName(PIXEL_LAUNCHER, "com.android.launcher3.settings.SettingsActivity"))
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         runCatching { ctx.startActivity(i) }.recoverCatching { ctx.startActivity(fallback) }
-                            .onFailure { Toast.makeText(ctx, "Couldn't open Pixel Launcher settings.", Toast.LENGTH_SHORT).show() }
+                            .onFailure { Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("Couldn't open Pixel Launcher settings."), Toast.LENGTH_SHORT).show() }
                     }
                 },
             )

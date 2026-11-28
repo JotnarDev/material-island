@@ -13,13 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import dev.jotnar.materialisland.i18n.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -419,16 +420,16 @@ fun BackupScreen(onBack: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 8.dp)) {
             Button(onClick = {
                 cm.setPrimaryClip(ClipData.newPlainText("Material Island", SettingsStore.export()))
-                Toast.makeText(ctx, "Settings copied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("Settings copied"), Toast.LENGTH_SHORT).show()
             }) { Text("Copy") }
             FilledTonalButton(onClick = {
                 val text = cm.primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString().orEmpty()
                 val ok = SettingsStore.import(text)
-                Toast.makeText(ctx, if (ok) "Settings imported" else "The clipboard doesn't contain valid settings", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr(if (ok) "Settings imported" else "The clipboard doesn't contain valid settings"), Toast.LENGTH_SHORT).show()
             }) { Text("Paste") }
             OutlinedButton(onClick = {
                 SettingsStore.reset()
-                Toast.makeText(ctx, "Defaults", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, dev.jotnar.materialisland.i18n.tr("Defaults"), Toast.LENGTH_SHORT).show()
             }) { Text("Reset") }
         }
         Spacer(Modifier.height(16.dp))
@@ -445,24 +446,26 @@ fun BackupScreen(onBack: () -> Unit) {
 // ── Acerca de ─────────────────────────────────────────────────────────
 
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(onBack: () -> Unit, onSetup: () -> Unit = {}) {
     SettingsScaffold("About", onBack) {
         Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text("Material Island", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.\n\n" +
-                        if (dev.jotnar.materialisland.ads.Ads.ENABLED) {
+                    dev.jotnar.materialisland.i18n.tr("A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.") + "\n\n" +
+                        dev.jotnar.materialisland.i18n.tr(if (dev.jotnar.materialisland.ads.Ads.ENABLED) {
                             "The island never shows ads and never tracks you. The settings screens show ads from Google AdMob, which may use your advertising ID if you agree. " +
                                 "Only At a glance, if you turn it on, downloads weather and scores."
                         } else {
                             "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather and scores, and the app can check GitHub for new versions. No account, no ads, no tracking."
-                        },
+                        }),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
+        Spacer(Modifier.height(12.dp))
+        Group({ dev.jotnar.materialisland.ui.NavRow("Setup guide", "Go through the permissions step by step", Icons.Rounded.Checklist, onClick = onSetup) })
         if (dev.jotnar.materialisland.BuildConfig.SELF_UPDATE) {
             GroupTitle("Updates")
             dev.jotnar.materialisland.ui.UpdateCard(always = true)
