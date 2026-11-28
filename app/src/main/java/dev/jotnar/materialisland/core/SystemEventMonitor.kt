@@ -13,6 +13,9 @@ import dev.jotnar.materialisland.data.SettingsStore
 import dev.jotnar.materialisland.model.IslandItem
 import dev.jotnar.materialisland.model.Kind
 
+/** id del evento de auriculares (se actualiza en sitio cuando llega la batería). */
+const val BUDS_ID = "sys:BLUETOOTH"
+
 /** Eventos cortos del sistema que aparecen como píldora ancha unos segundos. */
 class SystemEventMonitor(private val ctx: Context) {
 
@@ -34,6 +37,7 @@ class SystemEventMonitor(private val ctx: Context) {
             addAction(AudioManager.ACTION_HEADSET_PLUG)
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(Buds.ACTION_BATTERY)
         }
         ctx.registerReceiver(receiver, f, Context.RECEIVER_EXPORTED)
     }
@@ -96,9 +100,51 @@ class SystemEventMonitor(private val ctx: Context) {
             BluetoothDevice.ACTION_ACL_CONNECTED, BluetoothDevice.ACTION_ACL_DISCONNECTED -> if (s.bluetooth) {
                 val on = intent.action == BluetoothDevice.ACTION_ACL_CONNECTED
                 val name = deviceName(intent) ?: "Bluetooth"
-                show(Kind.BLUETOOTH, name, if (on) "Connected" else "Disconnected", if (on) "on" else "off")
+                val buds = budsInfo(intent, name, on)
+                if (buds != null) {
+                    if (!on) lastLevel.remove(buds.address)
+                    showBuds(buds, dur)
+                } else {
+                    show(Kind.BLUETOOTH, name, if (on) "Connected" else "Disconnected", if (on) "on" else "off")
+                }
+            }
+            // Los auriculares mandan la batería un momento después de conectarse, y luego cada vez que baja.
+            Buds.ACTION_BATTERY -> if (s.bluetooth) {
+                val level = intent.getIntExtra(Buds.EXTRA_BATTERY, -1).takeIf { it in 0..100 } ?: return
+                val name = deviceName(intent) ?: return
+                val buds = budsInfo(intent, name, true)?.copy(level = level) ?: return
+                val prev = lastLevel.put(buds.address, level)
+                val cur = IslandStore.state.value.transient
+                when {
+                    cur?.id == BUDS_ID && cur.buds?.address == buds.address -> showBuds(buds, dur, cur.postedAt, cur.text)
+                    level <= Buds.LOW && prev != null && prev > Buds.LOW -> showBuds(buds, dur, low = true)
+                }
             }
         }
+    }
+
+    /** Último nivel conocido de cada auricular, para avisar una sola vez al bajar del umbral. */
+    private val lastLevel = HashMap<String, Int>()
+
+    private fun showBuds(b: dev.jotnar.materialisland.model.BudsInfo, dur: Long, at: Long = System.currentTimeMillis(), text: String? = null, low: Boolean = false) {
+        IslandStore.show(
+            IslandItem(
+                id = BUDS_ID, kind = Kind.BLUETOOTH, title = b.name,
+                text = if (low) "Low battery" else text ?: if (b.connected) "Connected" else "Disconnected",
+                value = b.shown?.let { "$it%" } ?: if (b.connected) "Connected" else "Disconnected",
+                compactText = if (b.connected) "on" else "off", durationMs = dur, buds = b, postedAt = at,
+            ),
+        )
+    }
+
+    @Suppress("DEPRECATION", "MissingPermission")
+    private fun budsInfo(intent: Intent, name: String, on: Boolean): dev.jotnar.materialisland.model.BudsInfo? {
+        if (ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return null
+        val d = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) ?: return null
+        val type = Buds.type(d, name) ?: return null
+        val level = if (on) (Buds.battery(d) ?: lastLevel[d.address]) else null
+        if (level != null) lastLevel[d.address] = level
+        return dev.jotnar.materialisland.model.BudsInfo(name, d.address, type, on, level)
     }
 
     @Suppress("DEPRECATION", "MissingPermission")

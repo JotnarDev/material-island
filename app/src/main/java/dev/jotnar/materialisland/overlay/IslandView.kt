@@ -199,6 +199,7 @@ fun resolveMode(ui: IslandUi): Mode {
         p == null -> if (ui.shortcuts) Mode.EXPANDED else Mode.REST
         p.kind == Kind.NOTIFICATION -> Mode.PEEK
         ui.expanded && p.kind == Kind.CHARGING -> Mode.EXPANDED
+        ui.expanded && p.kind == Kind.BLUETOOTH && p.buds != null -> Mode.EXPANDED
         !p.kind.persistent -> Mode.WIDE
         ui.expanded -> Mode.EXPANDED
         else -> Mode.COMPACT
@@ -264,7 +265,7 @@ internal data class Dims(
     val icon: Dp, val edgePad: Dp,
 )
 
-private val Tabular = TextStyle(fontFeatureSettings = "tnum")
+internal val Tabular = TextStyle(fontFeatureSettings = "tnum")
 
 /**
  * Espaciado de la isla, sacado de la guía del banner de llamada entrante:
@@ -835,6 +836,7 @@ private fun CompactRight(item: IslandItem, p: IslandPalette, size: Dp) {
 @Composable
 private fun Wide(item: IslandItem, p: IslandPalette, d: Dims, copied: Boolean) {
     if (item.kind == Kind.CHARGING && item.charge != null) { ChargingPill(item, item.charge, p, d); return }
+    if (item.kind == Kind.BLUETOOTH && item.buds != null) { BudsPill(item, item.buds, p, d); return }
     val color = when (item.kind) {
         Kind.CHARGING -> if (item.compactText == "off") p.accent else SoftGreen
         Kind.BATTERY -> SoftRed
@@ -1144,6 +1146,7 @@ private fun Card(
             Kind.CALL -> CallBody(item, p, cb)
             Kind.NOTIFICATION -> NotificationBody(item, p, ui, cb)
             Kind.CHARGING -> ChargingCard(item, p)
+            Kind.BLUETOOTH -> BudsCard(item, p)
             Kind.MEDIA -> androidx.compose.animation.AnimatedContent(
                 targetState = ui.full,
                 transitionSpec = {

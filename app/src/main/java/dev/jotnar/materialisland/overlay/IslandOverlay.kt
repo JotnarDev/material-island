@@ -353,7 +353,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
             Mode.WIDE -> when {
                 item?.otp != null -> copyOtp(item)
                 // Al tocar la píldora de carga se abre la tarjeta con el detalle.
-                item != null && item.isExpandableCharge() -> { IslandStore.hold(true); expand(item.id) }
+                item != null && item.isExpandableWide() -> { IslandStore.hold(true); expand(item.id) }
                 else -> IslandStore.dismissTransient(item?.id)
             }
             Mode.PEEK -> if (item != null) {
@@ -452,7 +452,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
                     else -> Unit
                 }
                 Mode.PEEK -> if (expandedId.value == item.id) { if (!swipeDown) collapse() } else { IslandStore.hold(true); expand(item.id) }
-                Mode.WIDE -> if (item.isExpandableCharge()) { IslandStore.hold(true); expand(item.id) } else IslandStore.dismissTransient(item.id)
+                Mode.WIDE -> if (item.isExpandableWide()) { IslandStore.hold(true); expand(item.id) } else IslandStore.dismissTransient(item.id)
                 else -> Unit
             }
             GestureAction.OPEN_APP -> openApp(item)
@@ -588,7 +588,9 @@ private class OverlayOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegi
     }
 }
 
-private fun IslandItem.isExpandableCharge() = kind == Kind.CHARGING && compactText == "on" && charge != null
+/** Píldoras anchas que al tocarlas abren una tarjeta: la carga y los auriculares. */
+private fun IslandItem.isExpandableWide() =
+    (kind == Kind.CHARGING && compactText == "on" && charge != null) || (kind == Kind.BLUETOOTH && buds != null)
 
 /** expandedId especial: la tarjeta de accesos que se abre desde la cámara en reposo. */
 private const val SHORTCUTS_ID = "island:shortcuts"

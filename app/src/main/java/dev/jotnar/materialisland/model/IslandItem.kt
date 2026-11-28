@@ -65,6 +65,26 @@ data class MediaInfo(
     }
 }
 
+/**
+ * Auriculares o cascos Bluetooth (Kind.BLUETOOTH). [level] es la batería que Android expone para
+ * cualquier aparato; [left], [right] y [case] solo cuando el aparato los da por separado.
+ */
+data class BudsInfo(
+    val name: String,
+    val address: String,
+    val type: Type,
+    val connected: Boolean,
+    val level: Int? = null,
+    val left: Int? = null,
+    val right: Int? = null,
+    val case: Int? = null,
+) {
+    enum class Type { EARBUDS, HEADPHONES }
+    val hasParts get() = left != null || right != null || case != null
+    /** Lo que se muestra en la píldora: el nivel general, o el más bajo de los auriculares. */
+    val shown get() = level ?: listOfNotNull(left, right).minOrNull()
+}
+
 data class IslandItem(
     val id: String,
     val kind: Kind,
@@ -93,6 +113,8 @@ data class IslandItem(
     val media: MediaInfo? = null,
     /** Detalle de la carga (solo Kind.CHARGING). */
     val charge: ChargeInfo? = null,
+    /** Auriculares Bluetooth (solo Kind.BLUETOOTH). */
+    val buds: BudsInfo? = null,
     /** Para eventos del sistema: valor a la derecha (p. ej. "78%"). */
     val value: String? = null,
     /** Abrir expandida automáticamente (llamada entrante). */

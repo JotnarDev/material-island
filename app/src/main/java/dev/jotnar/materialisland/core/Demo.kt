@@ -129,7 +129,14 @@ object Demo {
                 ),
             )
             Type.BLUETOOTH -> IslandStore.show(
-                IslandItem(id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = "Pixel Buds Pro 2", value = "Connected", compactText = "on", durationMs = 3000),
+                IslandItem(
+                    id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = "Pixel Buds Pro 2", text = "Connected", value = "80%",
+                    compactText = "on", durationMs = 4000,
+                    buds = dev.jotnar.materialisland.model.BudsInfo(
+                        "Pixel Buds Pro 2", "demo", dev.jotnar.materialisland.model.BudsInfo.Type.EARBUDS, true,
+                        left = 80, right = 85, case = 45,
+                    ),
+                ),
             )
             Type.RINGER -> IslandStore.show(
                 IslandItem(id = "sys:RINGER", kind = Kind.RINGER, title = "Vibrate", value = "On", compactText = "vibrate", durationMs = 3000),
