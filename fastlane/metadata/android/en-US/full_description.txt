@@ -1,0 +1,35 @@
+<p>Material Island turns the camera cutout into a live surface for whatever is happening on your phone. It follows the Pixel look: Material You colours, Material 3 Expressive shapes and spring animations.</p>
+
+<p><b>What shows up in the island</b></p>
+<ul>
+<li><b>Music:</b> a small pill, a card with controls, then full album art on a blurred background</li>
+<li><b>Calls:</b> answer or decline from the island, with the call timer while you talk</li>
+<li><b>Timers, stopwatches and navigation</b> with live progress</li>
+<li><b>Downloads</b> and other progress notifications</li>
+<li><b>Charging:</b> a wavy ring and a card with time to full, speed and temperature</li>
+<li><b>Verification codes:</b> copy the code with one tap</li>
+<li><b>Unread chats</b> as small bubbles next to the camera</li>
+<li><b>At a glance</b> (optional): weather, live sports scores, stocks and alerts</li>
+<li><b>Shortcuts:</b> tap the camera at rest to open a card with the shortcuts you choose</li>
+</ul>
+
+<p><b>Make it yours</b></p>
+<ul>
+<li>Two open styles: <i>Morph</i>, or <i>Liquid drop</i>, where a drop stretches off the camera and opens</li>
+<li>Size and position calibration for your camera hole</li>
+<li>Gestures: tap, long press and swipe actions</li>
+<li>Choose which apps and which activities can use the island</li>
+<li>Back up and restore your settings</li>
+</ul>
+
+<p><b>Permissions</b></p>
+<ul>
+<li><b>Notification access</b> to show music, calls, timers and other activities. Nothing is stored or sent anywhere.</li>
+<li><b>Accessibility service</b>, used only to draw the island over the status bar and to know which app is in front. It never reads what is on your screen. The app shows a notice explaining this before you turn it on.</li>
+<li><b>Internet</b> is only used by At a glance, and only if you turn it on.</li>
+</ul>
+
+<p><b>Network services</b></p>
+<p>At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo, scores from ESPN and quotes from Yahoo Finance, and company logos from Google's favicon service. The rest of the app works fully offline.</p>
+
+<p>Works on Android 12 and newer, including Xiaomi, Redmi and POCO phones. Free, no ads, no account, no tracking.</p>

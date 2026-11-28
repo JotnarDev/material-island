@@ -1,0 +1,30 @@
+Categories:
+  - System
+  - Theming
+License: MIT
+AuthorName: JotnarDev
+WebSite: https://github.com/JotnarDev/material-island
+SourceCode: https://github.com/JotnarDev/material-island
+IssueTracker: https://github.com/JotnarDev/material-island/issues
+Changelog: https://github.com/JotnarDev/material-island/releases
+Donate: https://ko-fi.com/jotnardev
+
+AntiFeatures:
+  NonFreeNet:
+    en-US: At a glance (off by default) fetches sports scores from ESPN and stock quotes from Yahoo Finance.
+
+RepoType: git
+Repo: https://github.com/JotnarDev/material-island.git
+
+Builds:
+  - versionName: 1.2.1
+    versionCode: 6
+    commit: v1.2.1
+    subdir: app
+    gradle:
+      - fdroid
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.2.1
+CurrentVersionCode: 6

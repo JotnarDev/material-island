@@ -134,3 +134,36 @@ fun UpdateCard(always: Boolean) {
         }
     }
 }
+
+/**
+ * Pregunta (una sola vez) si buscar versiones nuevas en GitHub. Las dos respuestas pesan lo mismo y
+ * se explica que esas actualizaciones no pasan por las comprobaciones de ninguna tienda.
+ */
+@Composable
+fun UpdateOptInCard() {
+    fun answer(yes: Boolean) = dev.jotnar.materialisland.data.SettingsStore.update {
+        it.copy(updateOptInAsked = true, autoUpdateCheck = yes)
+    }
+    androidx.compose.material3.Surface(
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text("Get updates from GitHub?", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Material Island can check GitHub for a new version each time you open it. " +
+                    "Updates come straight from the developer's GitHub releases, so they skip the checks of any app store. " +
+                    "You can change this later in About.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(14.dp))
+            androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                androidx.compose.material3.FilledTonalButton(onClick = { answer(false) }, modifier = Modifier.weight(1f)) { Text("No thanks") }
+                androidx.compose.material3.FilledTonalButton(onClick = { answer(true) }, modifier = Modifier.weight(1f)) { Text("Check for updates") }
+            }
+        }
+    }
+}

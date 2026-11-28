@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- F-Droid actualiza la app: sin autoactualización ni permiso para instalar paquetes. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+
+    <application>
+        <receiver android:name=".core.InstallResultReceiver" tools:node="remove" />
+    </application>
+</manifest>

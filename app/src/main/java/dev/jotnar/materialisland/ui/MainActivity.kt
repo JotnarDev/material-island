@@ -212,9 +212,13 @@ private fun HomeScreen(go: (Screen) -> Unit) {
         Spacer(Modifier.height(12.dp))
         DemoChips()
 
-        // Versión nueva en GitHub: se mira una vez al abrir la app (si está activado). En Play, la actualiza Play.
-        val auto = dev.jotnar.materialisland.BuildConfig.SELF_UPDATE &&
-            dev.jotnar.materialisland.data.SettingsStore.flow.collectAsStateWithLifecycle().value.autoUpdateCheck
+        // Versión nueva en GitHub: solo si el usuario lo eligió (se le pregunta una vez). En Play y F-Droid actualiza la tienda.
+        val st = dev.jotnar.materialisland.data.SettingsStore.flow.collectAsStateWithLifecycle().value
+        if (dev.jotnar.materialisland.BuildConfig.SELF_UPDATE && !st.updateOptInAsked) {
+            Spacer(Modifier.height(12.dp))
+            UpdateOptInCard()
+        }
+        val auto = dev.jotnar.materialisland.BuildConfig.SELF_UPDATE && st.updateOptInAsked && st.autoUpdateCheck
         androidx.compose.runtime.LaunchedEffect(auto) { if (auto) dev.jotnar.materialisland.core.Updater.autoCheck(ctx) }
         val upd by dev.jotnar.materialisland.core.Updater.state.collectAsStateWithLifecycle()
         if (dev.jotnar.materialisland.BuildConfig.SELF_UPDATE) if (upd is dev.jotnar.materialisland.core.Updater.State.Available || upd is dev.jotnar.materialisland.core.Updater.State.Downloading ||

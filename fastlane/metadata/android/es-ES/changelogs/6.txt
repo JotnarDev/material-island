@@ -1,0 +1,3 @@
+- Primera versión en F-Droid.
+- La versión de GitHub ahora pregunta antes de buscar actualizaciones en GitHub.
+- Las versiones se firman con una clave de release nueva. Las instalaciones existentes se actualizan con normalidad.

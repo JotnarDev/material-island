@@ -23,23 +23,31 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Gradle firma con la clave de debug; la APK que se publica se vuelve a firmar con la clave
-            // de release + linaje de rotación (scripts/sign-apk.sh, lo hace el workflow Release). Ver docs/RELEASING.md.
-            signingConfig = signingConfigs.getByName("debug")
+            // La firma va por versión (abajo): foss y play con la clave de debug; la APK de GitHub se vuelve a
+            // firmar con la clave de release + linaje (scripts/sign-apk.sh, workflow Release; docs/RELEASING.md).
+            // fdroid sale sin firmar: la firma F-Droid.
         }
     }
 
     // Dos versiones:
     //  · foss: la de GitHub, Obtainium, F-Droid e IzzyOnDroid. Sin anuncios ni código de Google; se actualiza sola.
+    //  · fdroid: la que compila F-Droid. Como foss pero sin actualizador (actualiza F-Droid).
     //  · play: para Google Play. Anuncios solo en las pantallas de ajustes (nunca en la isla); la actualiza Play.
     flavorDimensions += "store"
     productFlavors {
         create("foss") {
             dimension = "store"
             buildConfigField("boolean", "SELF_UPDATE", "true")
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        // Igual que foss, pero para F-Droid: lo compila y firma F-Droid, y es F-Droid quien la actualiza.
+        create("fdroid") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
         }
         create("play") {
             dimension = "store"
+            signingConfig = signingConfigs.getByName("debug")
             buildConfigField("boolean", "SELF_UPDATE", "false")
             // IDs de PRUEBA de AdMob. Antes de publicar en Play, cambiarlos por los de tu cuenta de AdMob.
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
@@ -53,6 +61,12 @@ android {
     }
 
     buildFeatures { compose = true; buildConfig = true }
+
+    // Sin el bloque de dependencias cifrado con la clave de Google (F-Droid no lo acepta).
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 kotlin {

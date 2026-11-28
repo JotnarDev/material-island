@@ -1,0 +1,35 @@
+<p>Material Island convierte el agujero de la cámara en una superficie viva con lo que está pasando en tu teléfono. Sigue el estilo Pixel: colores Material You, formas Material 3 Expressive y animaciones con muelles.</p>
+
+<p><b>Qué aparece en la isla</b></p>
+<ul>
+<li><b>Música:</b> una píldora, una tarjeta con controles y la carátula completa sobre un fondo difuminado</li>
+<li><b>Llamadas:</b> contesta o rechaza desde la isla, con el tiempo de llamada mientras hablas</li>
+<li><b>Temporizadores, cronómetros y navegación</b> con progreso en vivo</li>
+<li><b>Descargas</b> y otras notificaciones de progreso</li>
+<li><b>Carga:</b> un anillo ondulado y una tarjeta con tiempo restante, velocidad y temperatura</li>
+<li><b>Códigos de verificación:</b> cópialos con un toque</li>
+<li><b>Chats sin leer</b> como burbujas junto a la cámara</li>
+<li><b>At a glance</b> (opcional): tiempo, marcadores en vivo, bolsa y alertas</li>
+<li><b>Accesos directos:</b> toca la cámara en reposo para abrir los que elijas</li>
+</ul>
+
+<p><b>A tu gusto</b></p>
+<ul>
+<li>Dos estilos de apertura: <i>Morph</i> o <i>Gota líquida</i></li>
+<li>Calibración del tamaño y la posición para tu cámara</li>
+<li>Gestos: toque, pulsación larga y deslizamiento</li>
+<li>Elige qué apps y qué actividades usan la isla</li>
+<li>Copia de seguridad de los ajustes</li>
+</ul>
+
+<p><b>Permisos</b></p>
+<ul>
+<li><b>Acceso a notificaciones</b> para mostrar música, llamadas, temporizadores y demás. No se guarda ni se envía nada.</li>
+<li><b>Servicio de accesibilidad</b>, solo para dibujar la isla sobre la barra de estado y saber qué app está delante. Nunca lee lo que hay en tu pantalla. La app lo explica antes de que lo actives.</li>
+<li><b>Internet</b> solo lo usa At a glance, y solo si lo activas.</li>
+</ul>
+
+<p><b>Servicios de red</b></p>
+<p>At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo, los marcadores de ESPN, las cotizaciones de Yahoo Finance y los logos de empresas del servicio de favicons de Google. El resto de la app funciona sin conexión.</p>
+
+<p>Funciona en Android 12 o superior, también en Xiaomi, Redmi y POCO. Gratis, sin anuncios, sin cuenta y sin rastreo.</p>

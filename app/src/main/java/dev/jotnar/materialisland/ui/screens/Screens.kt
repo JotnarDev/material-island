@@ -443,7 +443,7 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             val st = settings()
             Group({
-                SwitchRow("Check when opening the app", st.autoUpdateCheck, "One request to GitHub, nothing about you is sent") { v ->
+                SwitchRow("Check when opening the app", st.autoUpdateCheck, "Downloads come straight from GitHub, not through an app store") { v ->
                     set { it.copy(autoUpdateCheck = v) }
                 }
             })

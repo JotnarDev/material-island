@@ -197,8 +197,11 @@ data class IslandSettings(
     /** El usuario aceptó el aviso de uso de la API de accesibilidad. */
     val a11yDisclosureAccepted: Boolean = false,
 
-    /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). */
-    val autoUpdateCheck: Boolean = true,
+    /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). Solo si el usuario lo eligió. */
+    val autoUpdateCheck: Boolean = false,
+
+    /** Ya se le preguntó si quiere buscar actualizaciones en GitHub (la pregunta sale una vez). */
+    val updateOptInAsked: Boolean = false,
 
     // ── At a glance (lo único que usa internet) ──────────────────────
     val glanceEnabled: Boolean = false,

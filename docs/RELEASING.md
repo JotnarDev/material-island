@@ -6,6 +6,7 @@ GitHub releases contain only the **foss** APK. GitHub Actions builds, signs and 
 
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
 2. Write the notes in `release-notes/vX.Y.Z.md`, in English. Leave out the SHA-256 line: the workflow adds it.
+   Also write `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (and `es-ES`). F-Droid shows it: plain text, 500 bytes at most.
 3. Commit, push, then tag:
    ```bash
    git tag vX.Y.Z && git push origin vX.Y.Z
