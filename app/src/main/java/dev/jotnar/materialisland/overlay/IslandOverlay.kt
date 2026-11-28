@@ -91,7 +91,7 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
     private val hidden: StateFlow<Boolean> = combine(
         landscape, locked, fullscreen, SettingsStore.flow,
     ) { land, lock, full, s ->
-        !s.calibration && ((s.hideInLandscape && land) || (s.hideOnLockscreen && lock) || (s.hideInFullscreen && full))
+        s.paused || !s.calibration && ((s.hideInLandscape && land) || (s.hideOnLockscreen && lock) || (s.hideInFullscreen && full))
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
     private val ui: StateFlow<IslandUi> = combine(

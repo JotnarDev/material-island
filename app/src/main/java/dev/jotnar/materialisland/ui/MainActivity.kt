@@ -303,6 +303,42 @@ private fun HomeScreen(go: (Screen) -> Unit) {
             )
         }
 
+        // Isla en pausa desde el mosaico: aviso con botón para reanudar.
+        if (st.paused) {
+            Spacer(Modifier.height(12.dp))
+            Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Island paused", style = MaterialTheme.typography.titleMedium)
+                        Text("The quick settings tile paused it. Tap to turn it back on.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Button(onClick = { dev.jotnar.materialisland.data.SettingsStore.update { it.copy(paused = false) } }) { Text("Resume") }
+                }
+            }
+        }
+        // Ofrecer el mosaico de ajustes rápidos (Android 13+ lo añade con un diálogo del sistema).
+        if (allOk && !st.tileAdded && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            GroupTitle("Quick settings tile")
+            Group({
+                PermRow(
+                    "Quick settings tile", "Pause or resume the island from the quick settings panel",
+                    Icons.Rounded.Dashboard, ok = false, action = "Add",
+                ) {
+                    ctx.getSystemService(android.app.StatusBarManager::class.java).requestAddTileService(
+                        ComponentName(ctx, dev.jotnar.materialisland.service.IslandTileService::class.java),
+                        ctx.getString(dev.jotnar.materialisland.R.string.tile_label),
+                        android.graphics.drawable.Icon.createWithResource(ctx, dev.jotnar.materialisland.R.drawable.ic_tile),
+                        ctx.mainExecutor,
+                    ) { r ->
+                        if (r == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ||
+                            r == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED
+                        ) dev.jotnar.materialisland.data.SettingsStore.update { it.copy(tileAdded = true) }
+                    }
+                }
+            })
+        }
+
         GroupTitle("Customize")
         Group(
             { NavRow("Appearance", "Background, colors, album art", Icons.Rounded.Palette) { go(Screen.APPEARANCE) } },

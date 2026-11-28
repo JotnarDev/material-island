@@ -3,6 +3,14 @@ package dev.jotnar.materialisland.i18n
 /** Diccionario inglés → español. Generado a partir de los textos de la app; claves idénticas al código. */
 internal object Es {
     val exact: Map<String, String> = hashMapOf(
+        "Paused" to "En pausa",
+        "Island paused" to "Isla en pausa",
+        "The quick settings tile paused it. Tap to turn it back on." to "La pausaste desde el mosaico de ajustes rápidos. Toca para volver a encenderla.",
+        "Resume" to "Reanudar",
+        "Quick settings tile" to "Mosaico de ajustes rápidos",
+        "Pause or resume the island from the quick settings panel" to "Pausa o reanuda la isla desde el panel de ajustes rápidos",
+        "Add" to "Añadir",
+        "Added" to "Añadido",
         "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs." to "Una isla dinámica al estilo Pixel: Material You, formas y muelles de Material 3 Expressive.",
         "Setup guide" to "Guía de configuración",
         "Go through the permissions step by step" to "Repasa los permisos paso a paso",

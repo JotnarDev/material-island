@@ -38,7 +38,7 @@ class IslandAccessibilityService : AccessibilityService() {
         running.value = true
         // Mientras la isla vive y es "la principal", el sistema no muestra emergentes.
         headsUpJob = CoroutineScope(Dispatchers.Main).launch {
-            SettingsStore.flow.map { it.islandIsPrimary }.distinctUntilChanged().collect { primary ->
+            SettingsStore.flow.map { it.islandIsPrimary && !it.paused }.distinctUntilChanged().collect { primary ->
                 SystemHeadsUp.setEnabled(this@IslandAccessibilityService, !primary)
             }
         }

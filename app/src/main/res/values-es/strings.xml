@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">Dibuja la isla dinámica alrededor de la cámara. Solo detecta qué app está en primer plano (para ocultar la música mientras su app está abierta). Nunca lee el contenido de la pantalla y la isla no envía nada a internet.</string>
+    <string name="tile_label">Isla</string>
+</resources>

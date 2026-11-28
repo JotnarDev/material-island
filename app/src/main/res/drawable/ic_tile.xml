@@ -1,0 +1,7 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="60" android:viewportHeight="60">
+    <!-- El logo "Split" recortado para el mosaico de ajustes rápidos -->
+    <group android:translateX="-20.6" android:translateY="-24">
+        <path android:fillColor="#FFFFFF" android:pathData="M 39.1 39.1 L 46.02 39.1 A 14.9 14.9 0 0 1 57.86 44.95 A 7.45 7.45 0 0 0 68.01 46.56 A 9.05 9.05 0 1 1 68.01 61.44 A 7.45 7.45 0 0 0 57.86 63.05 A 14.9 14.9 0 0 1 46.02 68.9 L 39.1 68.9 A 14.9 14.9 0 0 1 39.1 39.1 Z" />
+    </group>
+</vector>

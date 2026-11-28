@@ -230,6 +230,10 @@ data class IslandSettings(
     val a11yDisclosureAccepted: Boolean = false,
     /** Asistente de bienvenida terminado (o saltado). */
     val onboardingDone: Boolean = false,
+    /** Isla en pausa desde el mosaico de ajustes rápidos: oculta y con los emergentes del sistema de vuelta. */
+    val paused: Boolean = false,
+    /** El mosaico está puesto en el panel (para no ofrecer añadirlo otra vez). */
+    val tileAdded: Boolean = false,
 
     /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). Solo si el usuario lo eligió. */
     val autoUpdateCheck: Boolean = false,
