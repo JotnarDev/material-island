@@ -1,3 +1,7 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: At a glance (off by default) fetches sports scores from ESPN and stock
+      quotes from Yahoo Finance.
 Categories:
   - System
   - Theming
@@ -9,14 +13,12 @@ IssueTracker: https://github.com/JotnarDev/material-island/issues
 Changelog: https://github.com/JotnarDev/material-island/releases
 Donate: https://ko-fi.com/jotnardev
 
-AntiFeatures:
-  NonFreeNet:
-    en-US: At a glance (off by default) fetches sports scores from ESPN and stock quotes from Yahoo Finance.
+AutoName: Material Island
 
 RepoType: git
 Repo: https://github.com/JotnarDev/material-island.git
-
-Binaries: https://github.com/JotnarDev/material-island/releases/download/v%v/material-island-fdroid-%v.apk
+Binaries: 
+  https://github.com/JotnarDev/material-island/releases/download/v%v/material-island-fdroid-%v.apk
 
 Builds:
   - versionName: 1.2.2
@@ -25,6 +27,8 @@ Builds:
     subdir: app
     gradle:
       - fdroid
+    rm:
+      - signing/lineage.bin
 
 AllowedAPKSigningKeys: 7ce7056020ecaa4b065ba195ec6e2de94d35e954a0658ea62ab405238a41d6da
 
