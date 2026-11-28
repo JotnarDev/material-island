@@ -29,10 +29,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
-
+      # El runner ya trae el SDK de Android; solo faltan la plataforma y las build-tools del proyecto.
       - name: SDK
-        run: sdkmanager "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+        run: |
+          sm=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin | sort -V | tail -1)/sdkmanager
+          yes | "$sm" --licenses > /dev/null || true
+          "$sm" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
 
       - uses: gradle/actions/setup-gradle@v4
 
