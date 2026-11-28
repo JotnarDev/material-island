@@ -142,7 +142,7 @@ class SystemEventMonitor(private val ctx: Context) {
         if (ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return null
         val d = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) ?: return null
         val type = Buds.type(d, name) ?: return null
-        val level = if (on) (Buds.battery(d) ?: lastLevel[d.address]) else null
+        val level = if (on && type != dev.jotnar.materialisland.model.BudsInfo.Type.COMPUTER) (Buds.battery(d) ?: lastLevel[d.address]) else null
         if (level != null) lastLevel[d.address] = level
         return dev.jotnar.materialisland.model.BudsInfo(name, d.address, type, on, level)
     }

@@ -141,6 +141,84 @@ private fun DrawScope.headphones(s: Float, cushion: Color, wave: Float) {
     }
 }
 
+/** Parlante portátil en forma de cápsula: rejilla, radiador pasivo que late y ondas de sonido a los lados. */
+private fun DrawScope.speaker(s: Float, accent: Color, wave: Float) {
+    val beat = sin(wave * 4 * PI).toFloat().let { if (it > 0f) it else 0f }
+    val bodyL = 0.16f * s; val bodyT = 0.34f * s; val bodyW = 0.68f * s; val bodyH = 0.36f * s
+    // Sombra
+    drawOval(Color.Black.copy(alpha = 0.25f), topLeft = Offset(0.24f * s, 0.74f * s), size = Size(0.52f * s, 0.06f * s))
+    // Ondas a cada lado
+    for (dir in listOf(-1f, 1f)) for (i in 0..1) {
+        val k = (wave * 2 + i * 0.5f) % 1f
+        val r = (0.06f + 0.09f * k) * s
+        val cx = if (dir < 0) bodyL - 0.01f * s else bodyL + bodyW + 0.01f * s
+        drawArc(
+            accent.copy(alpha = (1f - k) * 0.8f), startAngle = if (dir < 0) 135f else -45f, sweepAngle = 90f, useCenter = false,
+            topLeft = Offset(cx - r, 0.52f * s - r), size = Size(2 * r, 2 * r), style = Stroke(0.025f * s, cap = StrokeCap.Round),
+        )
+    }
+    // Cuerpo con tela del color de acento
+    drawRoundRect(
+        Brush.verticalGradient(listOf(accent, accent.copy(red = accent.red * 0.75f, green = accent.green * 0.75f, blue = accent.blue * 0.75f)), startY = bodyT, endY = bodyT + bodyH),
+        topLeft = Offset(bodyL, bodyT), size = Size(bodyW, bodyH), cornerRadius = CornerRadius(bodyH / 2),
+    )
+    // Rejilla en toda la tela (puntitos)
+    val step = 0.04f * s
+    var y = bodyT + 0.06f * s
+    while (y < bodyT + bodyH - 0.04f * s) {
+        var x = bodyL + bodyH * 0.3f
+        while (x < bodyL + bodyW - bodyH * 0.25f) {
+            drawCircle(Color.Black.copy(alpha = 0.2f), radius = 0.0075f * s, center = Offset(x, y)); x += step
+        }
+        y += step
+    }
+    // Extremos: tapas de goma y el radiador pasivo visto de canto, que se ensancha con el ritmo
+    for ((cx, dir) in listOf(bodyL + 0.035f * s to -1f, bodyL + bodyW - 0.035f * s to 1f)) {
+        val rw = 0.05f * s + 0.018f * s * beat
+        drawOval(BudShade, topLeft = Offset(cx - rw / 2 + dir * 0.01f * s, bodyT + 0.02f * s), size = Size(rw, bodyH - 0.04f * s))
+        drawOval(Color.White.copy(alpha = 0.8f), topLeft = Offset(cx - rw * 0.25f + dir * 0.012f * s, bodyT + bodyH * 0.25f), size = Size(rw * 0.5f, bodyH * 0.5f))
+    }
+    // Placa del logo en el centro
+    drawRoundRect(Color.White.copy(alpha = 0.92f), topLeft = Offset(0.5f * s - 0.06f * s, bodyT + bodyH / 2 - 0.028f * s), size = Size(0.12f * s, 0.056f * s), cornerRadius = CornerRadius(0.028f * s))
+    // Correa
+    drawRoundRect(BudShade, topLeft = Offset(bodyL + bodyW * 0.42f, bodyT - 0.05f * s), size = Size(bodyW * 0.16f, 0.07f * s), cornerRadius = CornerRadius(0.03f * s))
+}
+
+/** Portátil abierto: la pantalla (del color de acento) se abre al entrar y muestra el símbolo de Bluetooth latiendo. */
+private fun DrawScope.laptop(s: Float, accent: Color, open: Float, wave: Float) {
+    val hingeY = 0.66f * s
+    // Sombra y base (teclado en perspectiva)
+    drawOval(Color.Black.copy(alpha = 0.25f), topLeft = Offset(0.12f * s, 0.74f * s), size = Size(0.76f * s, 0.06f * s))
+    val base = androidx.compose.ui.graphics.Path().apply {
+        moveTo(0.2f * s, hingeY); lineTo(0.8f * s, hingeY); lineTo(0.9f * s, 0.75f * s); lineTo(0.1f * s, 0.75f * s); close()
+    }
+    drawPath(base, Brush.verticalGradient(listOf(BudWhite, BudShade), startY = hingeY, endY = 0.75f * s))
+    for (r in 0..1) drawLine(BudShade.copy(alpha = 0.9f), Offset((0.24f - r * 0.04f) * s, (0.69f + r * 0.03f) * s), Offset((0.76f + r * 0.04f) * s, (0.69f + r * 0.03f) * s), strokeWidth = 0.012f * s)
+    drawRoundRect(BudShade, topLeft = Offset(0.43f * s, 0.725f * s), size = Size(0.14f * s, 0.018f * s), cornerRadius = CornerRadius(0.01f * s))
+    // Pantalla: se "levanta" desde la bisagra (escala vertical)
+    val h = 0.44f * s * open
+    if (h > 1f) {
+        drawRoundRect(Color(0xFF2B2930), topLeft = Offset(0.2f * s, hingeY - h), size = Size(0.6f * s, h), cornerRadius = CornerRadius(0.03f * s))
+        val inset = 0.025f * s
+        if (h > 2 * inset) {
+            drawRoundRect(
+                Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.55f)), start = Offset(0.2f * s, hingeY - h), end = Offset(0.8f * s, hingeY)),
+                topLeft = Offset(0.2f * s + inset, hingeY - h + inset), size = Size(0.6f * s - 2 * inset, h - 2 * inset), cornerRadius = CornerRadius(0.015f * s),
+            )
+            // Símbolo de Bluetooth que late
+            if (open > 0.9f) {
+                val pulse = 1f + 0.08f * sin(wave * 2 * PI).toFloat()
+                val cx = 0.5f * s; val cy = hingeY - h / 2; val u = 0.075f * s * pulse
+                val p = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(cx - u * 0.7f, cy - u * 0.55f); lineTo(cx + u * 0.6f, cy + u * 0.5f); lineTo(cx, cy + u)
+                    lineTo(cx, cy - u); lineTo(cx + u * 0.6f, cy - u * 0.5f); lineTo(cx - u * 0.7f, cy + u * 0.55f)
+                }
+                drawPath(p, Color.White, style = Stroke(0.02f * s, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            }
+        }
+    }
+}
+
 /**
  * Ilustración animada de los auriculares: entran con un muelle (cada uno con un poco de retraso) y luego
  * flotan suavemente. Los cascos entran escalando y emiten ondas.
@@ -182,6 +260,17 @@ internal fun BudsArt(type: BudsInfo.Type, size: Dp, accent: Color, showCase: Boo
                 translate(top = dyR + (1f - r) * 0.35f * s) {
                     scale(0.6f + 0.4f * r, Offset(0.73f * s, baseY)) { bud(0.73f * s, baseY, bs, -1f, accent) }
                 }
+            }
+            BudsInfo.Type.SPEAKER -> {
+                val k = inL.value
+                translate(top = (1f - k) * 0.25f * s) {
+                    scale(0.6f + 0.4f * k, Offset(0.5f * s, 0.55f * s)) { speaker(s, accent, if (animate) phase else 0.12f) }
+                }
+            }
+            BudsInfo.Type.COMPUTER -> {
+                // La base entra y luego se abre la tapa.
+                val k = inC.value
+                scale(0.75f + 0.25f * k, Offset(0.5f * s, 0.7f * s)) { laptop(s, accent, inR.value, if (animate) phase else 0f) }
             }
             BudsInfo.Type.HEADPHONES -> {
                 val k = inL.value
@@ -291,7 +380,7 @@ internal fun BudsCard(item: IslandItem, p: IslandPalette) {
                     b.name, style = MaterialTheme.typography.titleMedium, color = p.content,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
-                if (!b.hasParts) {
+                if (!b.hasParts && b.hasBattery) {
                     Spacer(Modifier.height(Sp.lines))
                     Text(
                         level?.let { "$it%" } ?: if (b.connected) "Battery unknown" else "",

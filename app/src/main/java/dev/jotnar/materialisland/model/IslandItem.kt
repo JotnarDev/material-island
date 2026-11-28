@@ -82,7 +82,9 @@ data class BudsInfo(
     val right: Int? = null,
     val case: Int? = null,
 ) {
-    enum class Type { EARBUDS, HEADPHONES }
+    enum class Type { EARBUDS, HEADPHONES, SPEAKER, COMPUTER }
+    /** Parlantes y auriculares dan batería; una computadora no. */
+    val hasBattery get() = type != Type.COMPUTER
     val hasParts get() = left != null || right != null || case != null
     /** Lo que se muestra en la píldora: el nivel general, o el más bajo de los auriculares. */
     val shown get() = level ?: listOfNotNull(left, right).minOrNull()

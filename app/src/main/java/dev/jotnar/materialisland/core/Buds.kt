@@ -7,7 +7,7 @@ import dev.jotnar.materialisland.model.BudsInfo
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 /**
- * Auriculares Bluetooth: qué tipo son y cuánta batería tienen.
+ * Aparatos Bluetooth que la isla dibuja (audífonos, auriculares, parlantes y computadoras): qué tipo son y cuánta batería tienen.
  *
  * La batería sale de lo que Android ya sabe del aparato (perfil de manos libres o servicio de batería BLE):
  * `BluetoothDevice.getBatteryLevel()` es una API oculta, así que se llama con HiddenApiBypass, y Android
@@ -22,7 +22,10 @@ object Buds {
     private val earbuds = Regex("buds|pods|earbud|ear ?\\(|\\bwf-|elite|liberty|tws|in-?ear|nothing ear|\\bcmf\\b|beats (fit|flex)|galaxy buds")
     private val headphones = Regex("headphone|\\bwh-|\\bqc ?\\d|quietcomfort|\\bstudio\\b|momentum|over-?ear|\\bxm\\d|\\bmax\\b|\\bsolo\\b|tune 7|live 6|space q")
 
-    /** null si no es un aparato de audio para la cabeza (coche, altavoz, reloj, tele...). */
+    private val speakers = Regex("speaker|parlante|bocina|altavoz|soundlink|soundcore (motion|flare|boom|select)|\\bflip ?\\d|\\bcharge ?\\d|\\bjbl (go|clip|xtreme|boombox|pulse|partybox|flip|charge)|boom ?\\d|megaboom|wonderboom|everboom|\\bsrs-|ult field|sonos|homepod|nest (audio|mini)|echo (dot|pop|studio)|stanmore|acton|emberton|woburn|middleton|willen|beosound|beolit|soundbar|barra de sonido")
+    private val computers = Regex("macbook|imac|mac mini|laptop|notebook|thinkpad|ideapad|yoga|zenbook|vivobook|rog |legion|chromebook|surface|pavilion|envy|spectre|inspiron|latitude|\\bxps\\b|desktop|\\bpc\\b|-pc\\b|ubuntu|zorin|fedora|linux|windows")
+
+    /** null si no es un aparato que la isla sepa dibujar (coche, reloj, tele...). */
     @SuppressLint("MissingPermission")
     fun type(d: BluetoothDevice, name: String): BudsInfo.Type? {
         val n = name.lowercase()
@@ -34,6 +37,12 @@ object Buds {
             cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES -> BudsInfo.Type.HEADPHONES
             cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
                 cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE -> BudsInfo.Type.EARBUDS
+            // Parlantes y computadoras: por el nombre primero (muchos parlantes se anuncian como "audio" genérico).
+            speakers.containsMatchIn(n) -> BudsInfo.Type.SPEAKER
+            cls?.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER || computers.containsMatchIn(n) -> BudsInfo.Type.COMPUTER
+            cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER ||
+                cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO ||
+                cls?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HIFI_AUDIO -> BudsInfo.Type.SPEAKER
             else -> null
         }
     }

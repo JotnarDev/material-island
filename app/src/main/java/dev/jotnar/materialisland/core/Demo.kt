@@ -17,7 +17,7 @@ object Demo {
     enum class Type(val label: String) {
         MEDIA("Music"), CALL("Call"), TIMER("Timer"), NAV("Navigation"),
         DOWNLOAD("Download"), MESSAGE("Message"), OTP("Code"), CHARGING("Charging"),
-        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"), PARCEL("Package"), PRIVACY("Camera in use"),
+        BLUETOOTH("Bluetooth"), SPEAKER("Speaker"), LAPTOP("Laptop"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"), PARCEL("Package"), PRIVACY("Camera in use"),
     }
 
     private fun gradient(a: Int, b: Int): Bitmap {
@@ -138,6 +138,20 @@ object Demo {
                     ),
                 ),
             )
+            Type.SPEAKER, Type.LAPTOP -> {
+                val sp = type == Type.SPEAKER
+                IslandStore.show(
+                    IslandItem(
+                        id = "sys:BLUETOOTH", kind = Kind.BLUETOOTH, title = if (sp) "JBL Flip 6" else "MacBook Air",
+                        text = "Connected", value = if (sp) "65%" else "Connected", compactText = "on", durationMs = 6000,
+                        buds = dev.jotnar.materialisland.model.BudsInfo(
+                            if (sp) "JBL Flip 6" else "MacBook Air", "demo",
+                            if (sp) dev.jotnar.materialisland.model.BudsInfo.Type.SPEAKER else dev.jotnar.materialisland.model.BudsInfo.Type.COMPUTER,
+                            true, level = if (sp) 65 else null,
+                        ),
+                    ),
+                )
+            }
             Type.RIDE -> {
                 val trip = dev.jotnar.materialisland.model.TripInfo(
                     dev.jotnar.materialisland.model.TripInfo.Type.RIDE, eta = "4 min", stage = 1,
