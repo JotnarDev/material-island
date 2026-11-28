@@ -48,7 +48,7 @@ jobs:
           fi
 
       - name: Compilar
-        run: ./gradlew --no-daemon assembleFossRelease
+        run: ./gradlew --no-daemon assembleFossRelease assembleFdroidRelease
 
       - name: Firmar
         env:
@@ -62,9 +62,13 @@ jobs:
           name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           out="material-island-$name.apk"
           scripts/sign-apk.sh app/build/outputs/apk/foss/release/app-foss-release.apk "$out"
+          # La de F-Droid (builds reproducibles): F-Droid la compila, comprueba que es idéntica y reparte esta firmada.
+          fd="material-island-$name-fdroid.apk"
+          scripts/sign-apk.sh app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk "$fd"
           rm -f "$KEYSTORE"
           sha=$(sha256sum "$out" | cut -d' ' -f1)
           echo "APK=$out" >> "$GITHUB_ENV"
+          echo "FDROID_APK=$fd" >> "$GITHUB_ENV"
           echo "SHA=$sha" >> "$GITHUB_ENV"
           echo "SHA-256: $sha" >> "$GITHUB_STEP_SUMMARY"
 
@@ -72,8 +76,11 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APK }}
-          path: ${{ env.APK }}
+          name: apks
+          path: |
+            ${{ env.APK }}
+            ${{ env.FDROID_APK }}
+            app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk
 
       - name: Publicar release
         if: startsWith(github.ref, 'refs/tags/')
@@ -88,3 +95,5 @@ jobs:
           printf '\n**SHA-256:** `%s`\n' "$SHA" >> notes.md
           gh release create "$GITHUB_REF_NAME" "$APK" \
             --title "Material Island ${GITHUB_REF_NAME#v}" --notes-file notes.md --latest
+          # Después, para que la APK normal sea la primera (la que eligen el actualizador y Obtainium).
+          gh release upload "$GITHUB_REF_NAME" "$FDROID_APK"
