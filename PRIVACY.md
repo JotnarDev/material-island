@@ -1,6 +1,6 @@
 # Privacy policy: Material Island
 
-_Last updated: November 27, 2026_
+_Last updated: November 28, 2026_
 
 Material Island is a dynamic island app for Android made by JotnarDev. This policy explains what data the app handles. It has no account and no server of its own.
 
@@ -8,6 +8,8 @@ Material Island is a dynamic island app for Android made by JotnarDev. This poli
 
 - **Notifications.** With notification access, the app reads the notifications of apps that are playing music, in a call, timing, navigating or downloading, to show them in the island. They are processed only on your device. They are never stored or sent anywhere.
 - **Accessibility service.** It is used only to draw the island over the status bar and to know which app is in the foreground. It doesn't read the content of your screen, what you type or your passwords. Nothing from it is stored or sent anywhere.
+- **Calendar.** If you turn on the *Calendar* view of At a glance and allow calendar access, the app reads your upcoming events (today and tomorrow) from the calendars already synced on your phone, such as Google Calendar. It only reads them, on your device, to show the next event. They are never stored or sent anywhere.
+- **Camera and microphone indicator.** The app is told by Android when the camera or the microphone is in use, to show a dot in the island. It never uses the camera or the microphone itself.
 - **Settings** are saved only on your device. *Backup* exports them to a file that you choose.
 
 ## Data sent over the internet

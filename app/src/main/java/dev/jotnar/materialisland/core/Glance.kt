@@ -29,7 +29,7 @@ import java.time.Instant
 import kotlin.math.abs
 
 /**
- * Datos de At a glance: clima (Open-Meteo), marcadores (ESPN) y bolsa (Yahoo Finance).
+ * Datos de At a glance: clima (Open-Meteo), calendario (el del teléfono, sin internet), marcadores (ESPN) y bolsa (Yahoo Finance).
  * Es lo único de la app que usa internet, solo si el usuario lo activa, sin cuentas ni rastreo.
  * Sin conexión simplemente no hay datos y el resto de la isla sigue igual.
  */
@@ -57,7 +57,7 @@ object Glance {
     ) {
         val change get() = price - prevClose
     }
-    enum class AlertKind { ALARM, RAIN, SNOW, UV, COLD, HEAT, LIVE, MARKET_UP, MARKET_DOWN }
+    enum class AlertKind { EVENT, ALARM, RAIN, SNOW, UV, COLD, HEAT, LIVE, MARKET_UP, MARKET_DOWN }
     data class Alert(val kind: AlertKind, val title: String, val text: String)
 
     data class Data(
@@ -65,10 +65,13 @@ object Glance {
         val games: List<Game> = emptyList(),
         val quotes: List<Quote> = emptyList(),
         val alerts: List<Alert> = emptyList(),
+        val events: List<CalendarReader.Event> = emptyList(),
+        /** Falso si falta el permiso de calendario. */
+        val calendarAllowed: Boolean = true,
         val online: Boolean = true,
         val updatedAt: Long = 0,
     ) {
-        val hasAny get() = weather != null || games.isNotEmpty() || quotes.isNotEmpty() || alerts.isNotEmpty()
+        val hasAny get() = weather != null || events.isNotEmpty() || games.isNotEmpty() || quotes.isNotEmpty() || alerts.isNotEmpty()
         /** Partido en vivo para la píldora: primero los de equipos favoritos. */
         val liveGame get() = games.firstOrNull { it.live && it.favorite } ?: games.firstOrNull { it.live }
     }
@@ -90,6 +93,15 @@ object Glance {
     fun start(ctx: Context) {
         if (loop != null) return
         val app = ctx.applicationContext
+        // El calendario se relee en cuanto cambia (evento nuevo, movido o borrado).
+        runCatching {
+            app.contentResolver.registerContentObserver(
+                android.provider.CalendarContract.CONTENT_URI, true,
+                object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+                    override fun onChange(selfChange: Boolean) { kick.trySend(true) }
+                },
+            )
+        }
         loop = scope.launch {
             while (true) {
                 runCatching { tick(app) }.onFailure { Log.w(TAG, "tick", it) }
@@ -125,10 +137,17 @@ object Glance {
         if (key != lastKey) { lastKey = key; weatherAt = 0; sportsAt = 0; financeAt = 0 }
 
         val now = System.currentTimeMillis()
+        // Calendario: local, funciona también sin conexión.
+        val calOn = GlanceView.CALENDAR in s.glanceViews || GlanceView.ALERTS in s.glanceViews
+        val cal = _data.value.copy(
+            events = if (calOn) CalendarReader.upcoming(ctx, s.glanceAllDay) else emptyList(),
+            calendarAllowed = CalendarReader.allowed(ctx),
+        )
         if (!online(ctx)) {
-            _data.value = _data.value.copy(online = false)
+            _data.value = cal.copy(online = false, alerts = buildAlerts(ctx, s, cal))
             return
         }
+        _data.value = cal
         var d = _data.value.copy(online = true)
         val views = s.glanceViews.toSet()
         val needWeather = GlanceView.WEATHER in views || GlanceView.ALERTS in views
@@ -372,6 +391,11 @@ object Glance {
     private fun buildAlerts(ctx: Context, s: IslandSettings, d: Data): List<Alert> = buildList {
         val tf = android.text.format.DateFormat.getTimeFormat(ctx)
         val now = System.currentTimeMillis()
+        // Evento que empieza en los próximos 30 minutos (o ya empezó hace menos de 5).
+        d.events.firstOrNull { !it.allDay && it.begin - now in -5 * 60_000L..30 * 60_000L }?.let { e ->
+            val mins = ((e.begin - now) / 60_000).toInt()
+            add(Alert(AlertKind.EVENT, e.title, if (mins <= 0) "Starting now" + (e.meetUrl?.let { " · has a video call" } ?: "") else "In $mins min · ${tf.format(java.util.Date(e.begin))}"))
+        }
         ctx.getSystemService(AlarmManager::class.java)?.nextAlarmClock?.let { a ->
             if (a.triggerTime - now in 0..24 * 3_600_000L) {
                 val day = if (android.text.format.DateUtils.isToday(a.triggerTime)) "Today" else "Tomorrow"

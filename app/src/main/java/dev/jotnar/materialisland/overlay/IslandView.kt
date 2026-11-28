@@ -187,6 +187,8 @@ interface IslandCallbacks {
     fun onBubbleLongPress(item: IslandItem) {}
     fun onBubbleOverflow() {}
     fun onGlanceTap() {}
+    /** Abrir algo desde At a glance (un evento, una videollamada) y cerrar la tarjeta. */
+    fun onGlanceOpen(intent: android.content.Intent) {}
     /** Pasar a la vista siguiente (1) o anterior (-1) de At a glance. */
     fun onGlanceSwipe(step: Int) {}
 }

@@ -152,6 +152,12 @@ private fun ChipContent(v: GlanceView, data: Glance.Data, h: Dp) {
                 ({ WeatherGlyph(w.code, w.isDay, icon) })
             } else ({ Icon(Icons.Rounded.WbSunny, null, tint = Sun, modifier = Modifier.size(icon)) })
         }
+        GlanceView.CALENDAR -> {
+            val e = data.events.firstOrNull()
+            text = calendarChipText(ctx, e)
+            val c = e?.let { Color(it.color) } ?: Color.White
+            ({ Icon(Icons.Rounded.CalendarToday, null, tint = c, modifier = Modifier.size(icon * 0.82f)) })
+        }
         GlanceView.SPORTS -> {
             val g = data.liveGame ?: data.games.firstOrNull()
             when {
@@ -237,8 +243,12 @@ internal fun GlanceCard(s: IslandSettings, p: IslandPalette, d: Dims, ui: Island
             },
             label = "glanceCard",
         ) { view ->
-            if (!data.online && !data.hasAny) Padded(view, data, p) { Offline(p) }
+            if (view == GlanceView.CALENDAR) Padded(view, data, p) {
+                CalendarPage(data.events, data.calendarAllowed, p, cb::onGlanceOpen) { t, x -> Empty(Icons.Rounded.EventAvailable, t, x, p) }
+            }
+            else if (!data.online && !data.hasAny) Padded(view, data, p) { Offline(p) }
             else when (view) {
+                GlanceView.CALENDAR -> Unit
                 GlanceView.WEATHER -> WeatherCard(data, s, p)
                 GlanceView.SPORTS -> Padded(view, data, p) { SportsPage(data.games, p) }
                 GlanceView.FINANCE -> Padded(view, data, p) { FinancePage(data.quotes, p) }
@@ -274,7 +284,7 @@ private fun Header(v: GlanceView, data: Glance.Data, p: IslandPalette) {
         Spacer(Modifier.width(6.dp))
         Caption(if (v == GlanceView.FINANCE) "My stocks" else v.label, p.variant)
         Spacer(Modifier.weight(1f))
-        Text(updatedNote(data), style = MaterialTheme.typography.labelSmall, color = p.variant.copy(alpha = 0.7f))
+        if (v != GlanceView.CALENDAR) Text(updatedNote(data), style = MaterialTheme.typography.labelSmall, color = p.variant.copy(alpha = 0.7f))
     }
 }
 
@@ -607,7 +617,7 @@ private fun sportIcon(sport: String): ImageVector = when (sport) {
 
 @Composable
 private fun AlertsPage(alerts: List<Glance.Alert>, p: IslandPalette) {
-    if (alerts.isEmpty()) return Empty(Icons.Rounded.CheckCircle, "All clear", "No alarms, weather alerts or big market moves.", p)
+    if (alerts.isEmpty()) return Empty(Icons.Rounded.CheckCircle, "All clear", "No events soon, alarms, weather alerts or big market moves.", p)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         alerts.take(3).forEach { a ->
             val tint = alertTint(a.kind)
@@ -630,6 +640,7 @@ private fun AlertsPage(alerts: List<Glance.Alert>, p: IslandPalette) {
 }
 
 private fun alertIcon(k: Glance.AlertKind): ImageVector = when (k) {
+    Glance.AlertKind.EVENT -> Icons.Rounded.Event
     Glance.AlertKind.ALARM -> Icons.Rounded.Alarm
     Glance.AlertKind.RAIN -> Icons.Rounded.Umbrella
     Glance.AlertKind.SNOW -> Icons.Rounded.AcUnit
@@ -642,6 +653,7 @@ private fun alertIcon(k: Glance.AlertKind): ImageVector = when (k) {
 }
 
 private fun alertTint(k: Glance.AlertKind): Color = when (k) {
+    Glance.AlertKind.EVENT -> Color(0xFFA8C7FA)
     Glance.AlertKind.ALARM -> Color(0xFFD0BCFF)
     Glance.AlertKind.RAIN -> Color(0xFF8AB4F8)
     Glance.AlertKind.SNOW, Glance.AlertKind.COLD -> Color(0xFFA8E1FF)
@@ -654,6 +666,7 @@ private fun alertTint(k: Glance.AlertKind): Color = when (k) {
 
 private fun viewIcon(v: GlanceView): ImageVector = when (v) {
     GlanceView.WEATHER -> Icons.Rounded.WbSunny
+    GlanceView.CALENDAR -> Icons.Rounded.CalendarToday
     GlanceView.SPORTS -> Icons.Rounded.EmojiEvents
     GlanceView.FINANCE -> Icons.Rounded.ShowChart
     GlanceView.ALERTS -> Icons.Rounded.NotificationsActive

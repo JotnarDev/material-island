@@ -28,6 +28,7 @@ enum class AccentMode(val label: String) {
 @Serializable
 enum class GlanceView(val label: String) {
     WEATHER("Weather"),
+    CALENDAR("Calendar"),
     SPORTS("Sports"),
     FINANCE("Finance"),
     ALERTS("Alerts"),
@@ -219,6 +220,8 @@ data class IslandSettings(
     val glanceLeagues: List<String> = listOf(League.UCL.path, League.EPL.path, League.NBA.path, League.NFL.path),
     /** Equipos favoritos separados por comas (nombre o abreviatura). Vacío = todos los partidos. */
     val glanceTeams: String = "",
+    /** Calendario: mostrar también los eventos de todo el día. */
+    val glanceAllDay: Boolean = true,
     val glanceSymbols: String = "^GSPC, AAPL, BTC-USD",
 
     // ── Apps ─────────────────────────────────────────────────────────

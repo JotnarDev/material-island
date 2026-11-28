@@ -94,6 +94,11 @@ fun GlanceScreen(onBack: () -> Unit) {
         // Se guarda con 2 decimales (~1 km): suficiente para el clima.
         set { it.copy(glanceLat = "%.2f".format(Locale.US, loc.latitude).toDouble(), glanceLon = "%.2f".format(Locale.US, loc.longitude).toDouble(), glancePlace = name) }
     }
+    val calLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (!ok) Toast.makeText(ctx, "Without calendar access this view stays empty.", Toast.LENGTH_SHORT).show()
+        Glance.refresh()
+    }
+    fun calAllowed() = ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) useLocation() else Toast.makeText(ctx, "Search for your city instead.", Toast.LENGTH_SHORT).show()
     }
@@ -109,7 +114,8 @@ fun GlanceScreen(onBack: () -> Unit) {
         )
         note(
             "This is the only part of Material Island that uses the internet: weather from Open-Meteo, scores from ESPN and " +
-                "quotes from Yahoo Finance. No account, no tracking. Without a connection only this card pauses; the rest of the island keeps working.",
+                "quotes from Yahoo Finance. No account, no tracking. Without a connection only this card pauses; the rest of the island keeps working. " +
+                "The calendar is read on the phone, from the Google Calendar accounts already on it, and never leaves it.",
         )
 
         if (s.glanceEnabled) {
@@ -131,6 +137,7 @@ fun GlanceScreen(onBack: () -> Unit) {
                 val on = v in s.glanceViews
                 val toggle = @Composable {
                     SwitchRow(v.label, on, viewSubtitle(v), viewIcon(v)) { enable ->
+                        if (enable && v == GlanceView.CALENDAR && !calAllowed()) calLauncher.launch(Manifest.permission.READ_CALENDAR)
                         set { st ->
                             val next = if (enable) st.glanceViews + v else st.glanceViews - v
                             st.copy(glanceViews = GlanceView.entries.filter { it in next })
@@ -163,6 +170,23 @@ fun GlanceScreen(onBack: () -> Unit) {
                         {
                             SegmentedRow("Units", listOf(false, true), s.glanceFahrenheit, { if (it) "°F" else "°C" }) { f ->
                                 set { it.copy(glanceFahrenheit = f) }
+                            }
+                        },
+                    )
+                    GlanceView.CALENDAR -> listOf(
+                        {
+                            val ok = calAllowed()
+                            NavRow(
+                                if (ok) "Calendar access allowed" else "Allow calendar access",
+                                if (ok) "Events from Google Calendar on this phone" else "Needed to show your events", Icons.Rounded.EventAvailable,
+                            ) {
+                                if (!ok) calLauncher.launch(Manifest.permission.READ_CALENDAR)
+                                else ctx.startActivity(Intent(Intent.ACTION_VIEW, android.provider.CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            }
+                        },
+                        {
+                            SwitchRow("All-day events", s.glanceAllDay, "Birthdays, holidays and other all-day events", Icons.Rounded.Today) { on ->
+                                set { it.copy(glanceAllDay = on) }
                             }
                         },
                     )
@@ -237,9 +261,10 @@ private fun TextSetting(title: String, value: String, hint: String, help: String
 
 private fun viewSubtitle(v: GlanceView) = when (v) {
     GlanceView.WEATHER -> "Now, high and low, next hours"
+    GlanceView.CALENDAR -> "Your next event from Google Calendar, with a join button"
     GlanceView.SPORTS -> "Live scores and upcoming games"
     GlanceView.FINANCE -> "Your stocks with today's chart"
-    GlanceView.ALERTS -> "Alarm, rain, UV, live games, big moves"
+    GlanceView.ALERTS -> "Next event, alarm, rain, UV, live games, big moves"
 }
 
 private fun isInstalled(ctx: android.content.Context, pkg: String) =
@@ -247,6 +272,7 @@ private fun isInstalled(ctx: android.content.Context, pkg: String) =
 
 private fun viewIcon(v: GlanceView) = when (v) {
     GlanceView.WEATHER -> Icons.Rounded.WbSunny
+    GlanceView.CALENDAR -> Icons.Rounded.CalendarToday
     GlanceView.SPORTS -> Icons.Rounded.EmojiEvents
     GlanceView.FINANCE -> Icons.Rounded.ShowChart
     GlanceView.ALERTS -> Icons.Rounded.NotificationsActive

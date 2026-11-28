@@ -404,6 +404,11 @@ class IslandOverlay(private val service: IslandAccessibilityService) : IslandCal
         scheduleCollapse()
     }
 
+    override fun onGlanceOpen(intent: android.content.Intent) {
+        runCatching { service.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        collapse()
+    }
+
     override fun onGlanceSwipe(step: Int) {
         val n = SettingsStore.current.glanceViews.size
         if (n < 2) return
