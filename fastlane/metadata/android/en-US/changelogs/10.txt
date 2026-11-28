@@ -1,0 +1,4 @@
+- Quick Settings tile to pause or resume the island.
+- Sunrise and sunset in the weather card.
+- 11 more leagues: Europa League, Libertadores, Argentina, Brazil and more.
+- Temperature unit follows your region the first time.

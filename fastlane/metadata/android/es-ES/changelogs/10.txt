@@ -1,0 +1,4 @@
+- Mosaico de ajustes rápidos para pausar o reanudar la isla.
+- Amanecer y atardecer en la tarjeta del tiempo.
+- 11 ligas más: Europa League, Libertadores, Argentina, Brasil y más.
+- La unidad de temperatura sigue tu región la primera vez.
