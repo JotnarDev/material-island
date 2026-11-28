@@ -17,7 +17,7 @@ object Demo {
     enum class Type(val label: String) {
         MEDIA("Music"), CALL("Call"), TIMER("Timer"), NAV("Navigation"),
         DOWNLOAD("Download"), MESSAGE("Message"), OTP("Code"), CHARGING("Charging"),
-        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"),
+        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"), PARCEL("Package"),
     }
 
     private fun gradient(a: Int, b: Int): Bitmap {
@@ -152,12 +152,22 @@ object Demo {
                 )
             }
             Type.ORDER -> {
-                val trip = dev.jotnar.materialisland.model.TripInfo(dev.jotnar.materialisland.model.TripInfo.Type.DELIVERY, eta = "12 min", stage = 2)
+                val trip = dev.jotnar.materialisland.model.TripInfo(dev.jotnar.materialisland.model.TripInfo.Type.FOOD, eta = "12 min", stage = 2)
                 IslandStore.upsert(
                     IslandItem(
                         id = "demo:order", kind = Kind.TRIP, title = "Your order is on the way", text = "Burger place · 2 items",
                         appLabel = "Delivery", compactText = trip.eta, trip = trip, progress = 0.58f,
                         actions = listOf(IslandAction("Close", null, onClick = { IslandStore.remove("demo:order") })),
+                    ),
+                )
+            }
+            Type.PARCEL -> {
+                val trip = dev.jotnar.materialisland.model.TripInfo(dev.jotnar.materialisland.model.TripInfo.Type.PACKAGE, eta = "Today", stage = 2)
+                IslandStore.upsert(
+                    IslandItem(
+                        id = "demo:parcel", kind = Kind.TRIP, title = "Out for delivery", text = "Headphones case · 1 package",
+                        appLabel = "Store", compactText = trip.eta, trip = trip,
+                        actions = listOf(IslandAction("Close", null, onClick = { IslandStore.remove("demo:parcel") })),
                     ),
                 )
             }

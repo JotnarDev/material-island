@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeliveryDining
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocalShipping
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +57,11 @@ import dev.jotnar.materialisland.model.IslandItem
 import dev.jotnar.materialisland.model.TripInfo
 import kotlin.math.sin
 
-internal fun tripIcon(t: TripInfo?): ImageVector =
-    if (t?.type == TripInfo.Type.RIDE) Icons.Rounded.DirectionsCar else Icons.Rounded.DeliveryDining
+internal fun tripIcon(t: TripInfo?): ImageVector = when (t?.type) {
+    TripInfo.Type.RIDE -> Icons.Rounded.DirectionsCar
+    TripInfo.Type.PACKAGE -> Icons.Rounded.LocalShipping
+    else -> Icons.Rounded.DeliveryDining
+}
 
 /** Dónde va el vehículo en la línea (0..1): el progreso real si la app lo da, si no según la etapa. */
 private fun tripPosition(item: IslandItem, t: TripInfo): Float =
@@ -149,6 +153,12 @@ private fun Plate(text: String, p: IslandPalette) {
 internal fun TripBody(item: IslandItem, p: IslandPalette, actions: @Composable () -> Unit) {
     val t = item.trip ?: return
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // Ilustración que distingue viaje, comida o paquete.
+        Box(
+            Modifier.size(60.dp).clip(RoundedCornerShape(18.dp)).background(p.accentContainer.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center,
+        ) { TripArt(t.type, t.stage, 52.dp, p.accent) }
+        Spacer(Modifier.width(Sp.group))
         Column(Modifier.weight(1f)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium, color = p.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
             item.text?.let {

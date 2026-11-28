@@ -95,10 +95,11 @@ data class TripInfo(
     val plate: String? = null,
     val vehicle: String? = null,
 ) {
-    enum class Type { RIDE, DELIVERY }
+    enum class Type { RIDE, FOOD, PACKAGE }
     val stages: List<String> get() = when (type) {
         Type.RIDE -> listOf("Finding", "Arriving", "On trip", "Arrived")
-        Type.DELIVERY -> listOf("Confirmed", "Preparing", "On the way", "Delivered")
+        Type.FOOD -> listOf("Confirmed", "Preparing", "On the way", "Delivered")
+        Type.PACKAGE -> listOf("Ordered", "Shipped", "Out for delivery", "Delivered")
     }
 }
 

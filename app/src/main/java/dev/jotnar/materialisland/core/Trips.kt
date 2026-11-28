@@ -17,16 +17,29 @@ object Trips {
         "com.ubercab.eats", "com.dd.doordash", "com.grubhub.android", "com.grability.rappi", "com.rappi.android",
         "com.instacart.client", "ca.skipthedishes.customer", "com.skipthedishes.customer", "br.com.brainweb.ifood",
         "com.global.foodpanda.android", "com.deliveroo.orderapp", "com.glovoapp", "com.didiglobal.food",
-        "com.justeat.app.uk", "com.pedidosya", "com.wolt.android", "com.postmates.android", "com.mercadolibre",
-        "com.amazon.mShop.android.shopping",
+        "com.justeat.app.uk", "com.pedidosya", "com.wolt.android", "com.postmates.android",
     )
+    /** Tiendas y mensajerías: paquetes, no comida. */
+    private val PACKAGE_APPS = setOf(
+        "com.mercadolibre", "com.amazon.mShop.android.shopping", "com.alibaba.aliexpresshd", "com.einnovation.temu",
+        "com.zzkko", "com.shopify.arrive", "com.ups.mobile.android", "com.fedex.ida.android", "com.dhl.exp.dhlmobile",
+        "de.dhl.paket", "com.canadapost.android", "com.usps", "com.parcelsapp", "com.servientrega",
+    )
+    private val PACKAGE_WORDS = Regex("(?i)package|paquete|pacote|parcel|shipment|env[ií]o|shipped|enviado|tracking|rastreo|out for delivery|en reparto")
 
-    fun isTripApp(pkg: String) = pkg in RIDE_APPS || pkg in DELIVERY_APPS
+    fun isTripApp(pkg: String) = pkg in RIDE_APPS || pkg in DELIVERY_APPS || pkg in PACKAGE_APPS
 
     private val ORDER_WORDS = Regex("(?i)order|pedido|food|comida|delivery|entrega|restaurant|courier|dasher|repartidor|rappitendero|package|paquete")
 
-    private fun stage(t: String, ride: Boolean): Int {
+    private fun stage(t: String, type: TripInfo.Type): Int {
         fun has(r: String) = Regex("(?i)$r").containsMatchIn(t)
+        if (type == TripInfo.Type.PACKAGE) return when {
+            has("delivered|entregad|has arrived|lleg[oó]|chegou") -> 3
+            has("out for delivery|en reparto|saiu para entrega|on its way to you|llega hoy|arriving today|chega hoje") -> 2
+            has("shipped|enviado|in transit|en tr[aá]nsito|em tr[aâ]nsito|on the way|en camino|a caminho|despachado") -> 1
+            else -> 0
+        }
+        val ride = type == TripInfo.Type.RIDE
         return if (ride) when {
             has("(driver|conductor|motorista|chofer)\\b.{0,30}(has arrived|arrived|ha llegado|lleg[oó]|chegou|is here|est[aá] aqu)") -> 1
             has("you('ve| have) arrived|trip (completed|ended)|viaje (finalizado|terminado|completado)|llegaste|chegou ao destino|rate your") -> 3
@@ -48,8 +61,14 @@ object Trips {
 
     fun parse(pkg: String, title: String?, text: String?, shortCritical: String?): TripInfo {
         val all = listOfNotNull(title, text).joinToString(" · ")
-        val ride = pkg in RIDE_APPS && !ORDER_WORDS.containsMatchIn(all)
-        val st = stage(all, ride)
+        val type = when {
+            pkg in PACKAGE_APPS -> TripInfo.Type.PACKAGE
+            pkg in RIDE_APPS && !ORDER_WORDS.containsMatchIn(all) -> TripInfo.Type.RIDE
+            pkg !in RIDE_APPS && PACKAGE_WORDS.containsMatchIn(all) && !Regex("(?i)food|comida|restaurant").containsMatchIn(all) -> TripInfo.Type.PACKAGE
+            else -> TripInfo.Type.FOOD
+        }
+        val ride = type == TripInfo.Type.RIDE
+        val st = stage(all, type)
         val eta = shortCritical?.takeIf { it.isNotBlank() }
             ?: MINUTES.find(all)?.let { "${it.groupValues[1]} min" }
             ?: CLOCK.find(all)?.let { m -> listOf(m.groupValues[1], m.groupValues[2].uppercase().replace(".", "").replace(" ", "")).filter { it.isNotEmpty() }.joinToString(" ") }
@@ -64,7 +83,7 @@ object Trips {
         }
         val driver = DRIVER.find(all)?.groupValues?.get(1)?.takeIf { it !in setOf("Your", "Tu", "Seu", "Driver", "Order", "Pedido") }
         return TripInfo(
-            type = if (ride) TripInfo.Type.RIDE else TripInfo.Type.DELIVERY,
+            type = type,
             eta = eta, stage = st, driver = driver, plate = plate, vehicle = vehicle,
         )
     }
