@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.WbTwilight
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.PathEffect
 
 private val Live = Color(0xFFFF5449)
 private val Sun = Color(0xFFFFC21A)
+private val SunsetOrange = Color(0xFFFF8A50)
 private val Moon = Color(0xFFCBC4FF)
 private val CloudLight = Color(0xFFE9EDF2)
 private val CloudDark = Color(0xFF9AA4B1)
@@ -342,8 +344,28 @@ private fun WeatherCard(data: Glance.Data, s: IslandSettings, p: IslandPalette) 
         Spacer(Modifier.height(Sp.group + 6.dp))
         val pattern = remember { DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "Hm" else "h a") }
         val fmt = remember(pattern) { java.text.SimpleDateFormat(pattern, Locale.getDefault()) }
+        val shown = w.hours.drop(1).take(5)
+        // Amanecer o atardecer dentro de las horas que se ven: una columna más, en su sitio.
+        val sun = shown.firstOrNull()?.let { first -> w.sun.firstOrNull { it.time in (first.time - 3_600_000)..shown.last().time } }
+        val minuteFmt = remember { java.text.SimpleDateFormat(DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "Hm" else "hm"), Locale.getDefault()) }
+        val cols: List<Any> = (shown + listOfNotNull(sun)).sortedBy { if (it is Glance.Hour) it.time else (it as Glance.SunEvent).time }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            w.hours.drop(1).take(5).forEach { h ->
+            cols.forEach { c ->
+                if (c is Glance.SunEvent) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(minuteFmt.format(Date(c.time)), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.9f))
+                        Spacer(Modifier.height(6.dp))
+                        Icon(
+                            Icons.Rounded.WbTwilight, null, tint = if (c.sunrise) Sun else SunsetOrange,
+                            modifier = Modifier.size(30.dp),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(if (c.sunrise) "Sunrise" else "Sunset", style = MaterialTheme.typography.titleSmall, color = Color.White, maxLines = 1)
+                        Text(" ", style = MaterialTheme.typography.labelSmall)
+                    }
+                    return@forEach
+                }
+                val h = c as Glance.Hour
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(fmt.format(Date(h.time)), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.9f))
                     Spacer(Modifier.height(6.dp))

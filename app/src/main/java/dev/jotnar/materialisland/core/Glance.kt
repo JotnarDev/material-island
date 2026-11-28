@@ -41,7 +41,17 @@ object Glance {
     data class Weather(
         val temp: Double, val code: Int, val isDay: Boolean, val high: Double, val low: Double,
         val tomorrowLow: Double, val uvMax: Double, val place: String, val hours: List<Hour>, val fahrenheit: Boolean,
+        /** Amaneceres y atardeceres de hoy y mañana (hora local del lugar en ms). */
+        val sun: List<SunEvent> = emptyList(),
     )
+    data class SunEvent(val time: Long, val sunrise: Boolean)
+
+    /** ¿La región del teléfono usa °F? Android 14+ lo sabe (incluida la preferencia del usuario); antes, por país. */
+    fun localeUsesFahrenheit(): Boolean {
+        val unit = runCatching { androidx.core.text.util.LocalePreferences.getTemperatureUnit() }.getOrNull()
+        if (unit != null) return unit == androidx.core.text.util.LocalePreferences.TemperatureUnit.FAHRENHEIT
+        return java.util.Locale.getDefault().country in setOf("US", "LR", "MM", "BS", "BZ", "KY", "PW", "FM", "MH")
+    }
     data class Team(val abbr: String, val name: String, val score: String?, val logo: Bitmap?, val favorite: Boolean)
     data class Game(
         val league: String, val sport: String, val home: Team, val away: Team,
@@ -196,7 +206,7 @@ object Glance {
             "https://api.open-meteo.com/v1/forecast?latitude=${s.glanceLat}&longitude=${s.glanceLon}" +
                 "&current=temperature_2m,weather_code,is_day" +
                 "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" +
-                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max" +
+                "&daily=temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset" +
                 "&timezone=auto&forecast_days=2&timeformat=unixtime$unit",
         ) ?: return null
         return runCatching {
@@ -220,6 +230,11 @@ object Glance {
                 tomorrowLow = daily.getJSONArray("temperature_2m_min").optDouble(1, Double.NaN),
                 uvMax = daily.getJSONArray("uv_index_max").optDouble(0, 0.0),
                 place = s.glancePlace, hours = hours, fahrenheit = s.glanceFahrenheit,
+                sun = buildList {
+                    val rise = daily.optJSONArray("sunrise"); val set = daily.optJSONArray("sunset")
+                    for (i in 0 until (rise?.length() ?: 0)) add(SunEvent(rise!!.getLong(i) * 1000, true))
+                    for (i in 0 until (set?.length() ?: 0)) add(SunEvent(set!!.getLong(i) * 1000, false))
+                }.sortedBy { it.time },
             )
         }.onFailure { Log.w(TAG, "weather parse", it) }.getOrNull()
     }

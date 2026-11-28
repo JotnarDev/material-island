@@ -41,13 +41,24 @@ enum class GlanceView(val label: String) {
 /** Ligas que se pueden seguir (rutas del marcador público de ESPN). */
 enum class League(val path: String, val label: String, val sport: String) {
     UCL("soccer/uefa.champions", "Champions League", "soccer"),
+    UEL("soccer/uefa.europa", "Europa League", "soccer"),
+    UECL("soccer/uefa.europa.conf", "Conference League", "soccer"),
     EPL("soccer/eng.1", "Premier League", "soccer"),
     LALIGA("soccer/esp.1", "LaLiga", "soccer"),
     SERIEA("soccer/ita.1", "Serie A", "soccer"),
     BUNDES("soccer/ger.1", "Bundesliga", "soccer"),
     LIGUE1("soccer/fra.1", "Ligue 1", "soccer"),
+    EREDIVISIE("soccer/ned.1", "Eredivisie", "soccer"),
+    PRIMEIRA("soccer/por.1", "Primeira Liga", "soccer"),
     MLS("soccer/usa.1", "MLS", "soccer"),
     LIGAMX("soccer/mex.1", "Liga MX", "soccer"),
+    LIBERTADORES("soccer/conmebol.libertadores", "Copa Libertadores", "soccer"),
+    SUDAMERICANA("soccer/conmebol.sudamericana", "Copa Sudamericana", "soccer"),
+    ARG("soccer/arg.1", "Liga Profesional Argentina", "soccer"),
+    BRA("soccer/bra.1", "Brasileirão", "soccer"),
+    COL("soccer/col.1", "Liga BetPlay (Colombia)", "soccer"),
+    CHI("soccer/chi.1", "Primera División (Chile)", "soccer"),
+    PER("soccer/per.1", "Liga 1 (Perú)", "soccer"),
     NBA("basketball/nba", "NBA", "basketball"),
     NFL("football/nfl", "NFL", "football"),
     MLB("baseball/mlb", "MLB", "baseball"),
@@ -249,6 +260,8 @@ data class IslandSettings(
     val glanceLon: Double? = null,
     val glancePlace: String = "",
     val glanceFahrenheit: Boolean = false,
+    /** El usuario ya eligió °C/°F a mano (o ya se dedujo del país): no volver a tocarlo. */
+    val glanceUnitChosen: Boolean = false,
     /** Rutas de [League] seguidas. */
     val glanceLeagues: List<String> = listOf(League.UCL.path, League.EPL.path, League.NBA.path, League.NFL.path),
     /** Equipos favoritos separados por comas (nombre o abreviatura). Vacío = todos los partidos. */

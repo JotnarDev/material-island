@@ -3,6 +3,8 @@ package dev.jotnar.materialisland.i18n
 /** Diccionario inglés → español. Generado a partir de los textos de la app; claves idénticas al código. */
 internal object Es {
     val exact: Map<String, String> = hashMapOf(
+        "Sunrise" to "Amanecer",
+        "Sunset" to "Atardecer",
         "Paused" to "En pausa",
         "Island paused" to "Isla en pausa",
         "The quick settings tile paused it. Tap to turn it back on." to "La pausaste desde el mosaico de ajustes rápidos. Toca para volver a encenderla.",

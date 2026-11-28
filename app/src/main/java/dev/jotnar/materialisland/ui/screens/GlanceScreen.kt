@@ -109,7 +109,10 @@ fun GlanceScreen(onBack: () -> Unit) {
                 SwitchRow(
                     "Show At a glance", s.glanceEnabled,
                     "Icon on the left of the camera. Tap it for a card you can swipe.", Icons.Rounded.AutoAwesome,
-                ) { on -> set { it.copy(glanceEnabled = on) } }
+                ) { on ->
+                    // La primera vez, °F o °C según la región del teléfono (sin pisar lo que el usuario ya eligió).
+                    set { if (on && !it.glanceUnitChosen) it.copy(glanceEnabled = true, glanceFahrenheit = dev.jotnar.materialisland.core.Glance.localeUsesFahrenheit(), glanceUnitChosen = true) else it.copy(glanceEnabled = on) }
+                }
             },
         )
         note(
@@ -169,7 +172,7 @@ fun GlanceScreen(onBack: () -> Unit) {
                         },
                         {
                             SegmentedRow("Units", listOf(false, true), s.glanceFahrenheit, { if (it) "°F" else "°C" }) { f ->
-                                set { it.copy(glanceFahrenheit = f) }
+                                set { it.copy(glanceFahrenheit = f, glanceUnitChosen = true) }
                             }
                         },
                     )
