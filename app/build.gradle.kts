@@ -24,6 +24,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // Sin el commit de git dentro de la APK: cambia según dónde se compile y rompe las builds reproducibles.
+            vcsInfo.include = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // La firma va por versión (abajo): foss y play con la clave de debug; la APK de GitHub se vuelve a
             // firmar con la clave de release + linaje (scripts/sign-apk.sh, workflow Release; docs/RELEASING.md).
