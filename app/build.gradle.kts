@@ -23,8 +23,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Firmado con la clave de debug de la máquina que compila: la APK de GitHub Releases
-            // y las instalaciones por ADB comparten firma, así que se actualizan sin desinstalar.
+            // Gradle firma con la clave de debug; la APK que se publica se vuelve a firmar con la clave
+            // de release + linaje de rotación (scripts/sign-apk.sh, lo hace el workflow Release). Ver docs/RELEASING.md.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

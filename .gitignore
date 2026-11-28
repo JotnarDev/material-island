@@ -5,3 +5,8 @@ local.properties
 *.iml
 .kotlin/
 shots/
+
+# Claves de firma: nunca en el repo (viven en ../material-island-keys y en los secretos de GitHub)
+*.jks
+*.keystore
+keystore.properties

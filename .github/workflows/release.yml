@@ -1,0 +1,88 @@
+# Releases automáticas de la versión foss.
+#
+#  · Al subir un tag vX.Y.Z: compila, firma con la clave de release (+ linaje de rotación),
+#    calcula el SHA-256 y publica la release en GitHub con el APK.
+#    Las notas salen de release-notes/vX.Y.Z.md (si no existe, las genera GitHub).
+#  · A mano (Actions → Release → Run workflow): hace lo mismo pero sin publicar,
+#    y deja el APK firmado como artefacto para probarlo.
+#
+# Secretos necesarios: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+# (se cargan con scripts/upload-signing-secrets.sh).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: SDK
+        run: sdkmanager "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Comprobar versión
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$name" != "$tag" ]; then
+            echo "::error::El tag es $GITHUB_REF_NAME pero versionName es $name"; exit 1
+          fi
+
+      - name: Compilar
+        run: ./gradlew --no-daemon assembleFossRelease
+
+      - name: Firmar
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          export KEYSTORE="$RUNNER_TEMP/release.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+          name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          out="material-island-$name.apk"
+          scripts/sign-apk.sh app/build/outputs/apk/foss/release/app-foss-release.apk "$out"
+          rm -f "$KEYSTORE"
+          sha=$(sha256sum "$out" | cut -d' ' -f1)
+          echo "APK=$out" >> "$GITHUB_ENV"
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+          echo "SHA-256: $sha" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar APK (prueba)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK }}
+          path: ${{ env.APK }}
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="release-notes/$GITHUB_REF_NAME.md"
+          if [ -f "$notes" ]; then cp "$notes" notes.md; else
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" -q .body > notes.md
+          fi
+          # La app lee esta línea para verificar la descarga: no quitarla.
+          printf '\n**SHA-256:** `%s`\n' "$SHA" >> notes.md
+          gh release create "$GITHUB_REF_NAME" "$APK" \
+            --title "Material Island ${GITHUB_REF_NAME#v}" --notes-file notes.md --latest
