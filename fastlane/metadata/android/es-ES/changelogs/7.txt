@@ -1,0 +1,2 @@
+- Builds reproducibles: F-Droid puede comprobar que su compilación es idéntica a la del desarrollador y distribuirla con la misma firma.
+- La release de GitHub incluye también la versión de F-Droid.

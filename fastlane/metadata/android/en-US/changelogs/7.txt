@@ -1,0 +1,2 @@
+- Reproducible builds: F-Droid can verify that its build is identical to the developer's and ship it with the same signature.
+- The GitHub release now also includes the F-Droid build.
