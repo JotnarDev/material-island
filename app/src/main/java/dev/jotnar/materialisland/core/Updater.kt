@@ -79,7 +79,7 @@ object Updater {
                     val o = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
                     val assets = o.getJSONArray("assets")
                     val apk = (0 until assets.length()).map { assets.getJSONObject(it) }
-                        .firstOrNull { it.getString("name").let { n -> n.endsWith(".apk") && !n.endsWith("-fdroid.apk") } } ?: error("The release has no APK")
+                        .firstOrNull { it.getString("name").let { n -> n.endsWith(".apk") && !n.contains("fdroid") } } ?: error("The release has no APK")
                     val body = o.optString("body")
                     Release(
                         version = o.getString("tag_name").removePrefix("v"),

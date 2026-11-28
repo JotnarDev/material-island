@@ -16,15 +16,19 @@ AntiFeatures:
 RepoType: git
 Repo: https://github.com/JotnarDev/material-island.git
 
+Binaries: https://github.com/JotnarDev/material-island/releases/download/v%v/material-island-fdroid-%v.apk
+
 Builds:
-  - versionName: 1.2.1
-    versionCode: 6
-    commit: 0ea0171bb36b36ac2f43b477f629597c005d61c5
+  - versionName: 1.2.2
+    versionCode: 7
+    commit: a139bfbf6b78811d35be5b0d5c84351bafb55b13
     subdir: app
     gradle:
       - fdroid
 
+AllowedAPKSigningKeys: 7ce7056020ecaa4b065ba195ec6e2de94d35e954a0658ea62ab405238a41d6da
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.2.1
-CurrentVersionCode: 6
+CurrentVersion: 1.2.2
+CurrentVersionCode: 7

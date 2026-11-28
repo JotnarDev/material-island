@@ -63,7 +63,8 @@ jobs:
           out="material-island-$name.apk"
           scripts/sign-apk.sh app/build/outputs/apk/foss/release/app-foss-release.apk "$out"
           # La de F-Droid (builds reproducibles): F-Droid la compila, comprueba que es idéntica y reparte esta firmada.
-          fd="material-island-$name-fdroid.apk"
+          # Nombre que ordena DESPUÉS de la normal: el actualizador de versiones antiguas coge la primera .apk.
+          fd="material-island-fdroid-$name.apk"
           scripts/sign-apk.sh app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk "$fd"
           rm -f "$KEYSTORE"
           sha=$(sha256sum "$out" | cut -d' ' -f1)

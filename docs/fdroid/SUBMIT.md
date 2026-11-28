@@ -20,6 +20,10 @@ F-Droid builds the app from source with the `fdroid` flavor: no ads, no Google l
 - **Network:** only *At a glance* uses the internet, and it is off by default. It uses Open-Meteo, ESPN, Yahoo Finance and Google's favicon service, hence the `NonFreeNet` anti-feature.
 - **AI disclosure:** large parts of the code were written with an AI coding assistant (Claude). F-Droid's inclusion policy has no rule against this, but stating it up front is honest and avoids surprises.
 
-## Signatures
+## Signatures: reproducible builds
 
-F-Droid signs with its own key. That means the F-Droid build and the GitHub build can't update each other: switching between them requires uninstalling, after a settings backup in **Backup**. Later this can change to reproducible builds, where F-Droid ships the developer-signed APK.
+F-Droid builds the `fdroid` flavor from the tagged commit and compares it with `material-island-fdroid-X.Y.Z.apk` from the GitHub release. If they match, F-Droid ships the developer-signed APK. Users can then move between the GitHub and F-Droid versions without uninstalling, since both carry the same signature.
+
+- The release workflow builds and signs that APK on every tag.
+- Verified on 2026-11-27: the build from a local clean checkout and the GitHub Actions build of the same commit are byte-for-byte identical (`vcsInfo.include = false` removes the only difference).
+- `AllowedAPKSigningKeys` is the SHA-256 of the release certificate. The APK is signed with APK Signature Scheme v3 plus a rotation lineage from the old debug key (see `docs/RELEASING.md`).
