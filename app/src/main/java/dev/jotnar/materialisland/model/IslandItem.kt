@@ -16,6 +16,7 @@ import android.media.session.MediaController
 enum class Kind(val priority: Int, val persistent: Boolean) {
     CALL(100, true),
     NAVIGATION(80, true),
+    TRIP(75, true),
     TIMER(70, true),
     RECORDING(68, true),
     LIVE(65, true),
@@ -85,6 +86,22 @@ data class BudsInfo(
     val shown get() = level ?: listOfNotNull(left, right).minOrNull()
 }
 
+/** Viaje o pedido en curso (Kind.TRIP). [stage] va de 0 a 3 (ver [stages]). */
+data class TripInfo(
+    val type: Type,
+    val eta: String? = null,
+    val stage: Int = 0,
+    val driver: String? = null,
+    val plate: String? = null,
+    val vehicle: String? = null,
+) {
+    enum class Type { RIDE, DELIVERY }
+    val stages: List<String> get() = when (type) {
+        Type.RIDE -> listOf("Finding", "Arriving", "On trip", "Arrived")
+        Type.DELIVERY -> listOf("Confirmed", "Preparing", "On the way", "Delivered")
+    }
+}
+
 data class IslandItem(
     val id: String,
     val kind: Kind,
@@ -113,6 +130,8 @@ data class IslandItem(
     val media: MediaInfo? = null,
     /** Detalle de la carga (solo Kind.CHARGING). */
     val charge: ChargeInfo? = null,
+    /** Viaje o pedido (solo Kind.TRIP). */
+    val trip: TripInfo? = null,
     /** Auriculares Bluetooth (solo Kind.BLUETOOTH). */
     val buds: BudsInfo? = null,
     /** Para eventos del sistema: valor a la derecha (p. ej. "78%"). */

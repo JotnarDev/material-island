@@ -145,6 +145,22 @@ object NotificationParser {
             )
         }
 
+        // ── Viajes y pedidos ─────────────────────────────────────────────
+        if (ongoing && Trips.isTripApp(pkg) && (title != null || text != null)) {
+            if (!s.trips) return Result.Ignore
+            val trip = Trips.parse(pkg, title, text, shortCritical)
+            return Result.Live(
+                IslandItem(
+                    id = id, kind = Kind.TRIP, pkg = pkg, appLabel = label, appIcon = icon,
+                    title = title ?: label, text = text, image = large, accent = accent,
+                    compactText = trip.eta ?: trip.stages[trip.stage],
+                    progress = if (pMax > 0) p.toFloat() / pMax else -1f,
+                    actions = actions.take(2), contentIntent = n.contentIntent, trip = trip,
+                    contentHash = Objects.hash(title, text, p, shortCritical),
+                ),
+            )
+        }
+
         // ── Navegación ───────────────────────────────────────────────────
         if (cat == Notification.CATEGORY_NAVIGATION && ongoing) {
             if (!s.navigation) return Result.Ignore

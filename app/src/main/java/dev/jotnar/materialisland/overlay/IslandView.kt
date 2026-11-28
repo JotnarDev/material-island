@@ -800,6 +800,7 @@ private fun CompactLeft(item: IslandItem, p: IslandPalette, size: Dp, s: IslandS
             if (img != null) Image(img.asImageBitmap(), null, Modifier.size(size * 0.72f))
             else Icon(Icons.Rounded.Navigation, null, tint = p.onAccentContainer, modifier = Modifier.size(size * 0.62f))
         }
+        Kind.TRIP -> TripCompactIcon(item, p, size)
         else -> AppOrKindIcon(item, p, size)
     }
 }
@@ -816,7 +817,7 @@ private fun CompactRight(item: IslandItem, p: IslandPalette, size: Dp) {
         Kind.CALL -> if (item.incoming) T("Incoming", SoftGreen) else T(chronoText(item, rememberNow()) ?: "On call", SoftGreen)
         Kind.RECORDING -> T(chronoText(item, rememberNow()) ?: "REC", SoftRed)
         Kind.TIMER -> T(chronoText(item, rememberNow()) ?: item.compactText ?: item.title)
-        Kind.NAVIGATION -> T(item.compactText ?: item.title)
+        Kind.NAVIGATION, Kind.TRIP -> T(item.compactText ?: item.title)
         Kind.PROGRESS, Kind.LIVE -> when {
             item.indeterminate -> LoadingIndicator(Modifier.size(size), color = p.accent)
             item.progress >= 0f -> Box(contentAlignment = Alignment.Center) {
@@ -1163,6 +1164,7 @@ private fun Card(
                     when (item.kind) {
                         Kind.TIMER, Kind.RECORDING -> TimerBody(item, p, cb)
                         Kind.NAVIGATION -> NavBody(item, p, cb)
+                        Kind.TRIP -> TripBody(item, p) { ActionRow(item, p, cb) }
                         else -> ProgressBody(item, p, cb)
                     }
                 }
@@ -1195,6 +1197,7 @@ private fun CardHeader(item: IslandItem, p: IslandPalette, d: Dims) {
                 )
                 Kind.PROGRESS, Kind.LIVE -> if (item.progress >= 0f) Text("${(item.progress * 100).roundToInt()}%", style = style, color = p.accent)
                 Kind.NOTIFICATION -> Text("now", style = style, color = p.variant)
+                Kind.TRIP -> item.trip?.let { Text(it.stages[it.stage], style = style, color = p.accent) }
                 else -> Unit
             }
         }
@@ -1202,7 +1205,7 @@ private fun CardHeader(item: IslandItem, p: IslandPalette, d: Dims) {
 }
 
 @Composable
-private fun ActionRow(item: IslandItem, p: IslandPalette, cb: IslandCallbacks, actions: List<IslandAction> = item.actions) {
+internal fun ActionRow(item: IslandItem, p: IslandPalette, cb: IslandCallbacks, actions: List<IslandAction> = item.actions) {
     if (actions.isEmpty()) return
     Spacer(Modifier.height(Sp.group))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Sp.group)) {

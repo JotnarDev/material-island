@@ -17,7 +17,7 @@ object Demo {
     enum class Type(val label: String) {
         MEDIA("Music"), CALL("Call"), TIMER("Timer"), NAV("Navigation"),
         DOWNLOAD("Download"), MESSAGE("Message"), OTP("Code"), CHARGING("Charging"),
-        BLUETOOTH("Bluetooth"), RINGER("Vibrate"),
+        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"),
     }
 
     private fun gradient(a: Int, b: Int): Bitmap {
@@ -138,6 +138,29 @@ object Demo {
                     ),
                 ),
             )
+            Type.RIDE -> {
+                val trip = dev.jotnar.materialisland.model.TripInfo(
+                    dev.jotnar.materialisland.model.TripInfo.Type.RIDE, eta = "4 min", stage = 1,
+                    driver = "Carlos", plate = "KLM-482", vehicle = "Gray Toyota Corolla",
+                )
+                IslandStore.upsert(
+                    IslandItem(
+                        id = "demo:ride", kind = Kind.TRIP, title = "Carlos is on the way", text = "Gray Toyota Corolla · KLM-482",
+                        appLabel = "Ride", compactText = trip.eta, trip = trip,
+                        actions = listOf(IslandAction("Cancel", null, onClick = { IslandStore.remove("demo:ride") })),
+                    ),
+                )
+            }
+            Type.ORDER -> {
+                val trip = dev.jotnar.materialisland.model.TripInfo(dev.jotnar.materialisland.model.TripInfo.Type.DELIVERY, eta = "12 min", stage = 2)
+                IslandStore.upsert(
+                    IslandItem(
+                        id = "demo:order", kind = Kind.TRIP, title = "Your order is on the way", text = "Burger place · 2 items",
+                        appLabel = "Delivery", compactText = trip.eta, trip = trip, progress = 0.58f,
+                        actions = listOf(IslandAction("Close", null, onClick = { IslandStore.remove("demo:order") })),
+                    ),
+                )
+            }
             Type.RINGER -> IslandStore.show(
                 IslandItem(id = "sys:RINGER", kind = Kind.RINGER, title = "Vibrate", value = "On", compactText = "vibrate", durationMs = 3000),
             )

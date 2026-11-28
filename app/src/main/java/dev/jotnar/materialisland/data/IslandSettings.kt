@@ -147,6 +147,8 @@ data class IslandSettings(
     val media: Boolean = true,
     val timers: Boolean = true,
     val navigation: Boolean = true,
+    /** Viajes (Uber, DiDi...) y pedidos (Rappi, Uber Eats...) con tiempo de llegada. */
+    val trips: Boolean = true,
     val progress: Boolean = true,
     val liveUpdates: Boolean = true,
     val recording: Boolean = true,

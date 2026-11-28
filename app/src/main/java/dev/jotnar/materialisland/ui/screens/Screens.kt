@@ -219,6 +219,7 @@ fun ActivitiesScreen(onBack: () -> Unit) {
             { SwitchRow("Music & video", s.media, "Album art, controls and wavy seek bar", Icons.Rounded.MusicNote) { v -> set { it.copy(media = v) } } },
             { SwitchRow("Timers & stopwatches", s.timers, icon = Icons.Rounded.Timer) { v -> set { it.copy(timers = v) } } },
             { SwitchRow("Navigation", s.navigation, "Next turn from Maps", Icons.Rounded.Navigation) { v -> set { it.copy(navigation = v) } } },
+            { SwitchRow("Rides and deliveries", s.trips, "Uber, DiDi, Rappi, DoorDash and more: arrival time and progress", Icons.Rounded.LocalTaxi) { v -> set { it.copy(trips = v) } } },
             { SwitchRow("Downloads & progress", s.progress, icon = Icons.Rounded.Download) { v -> set { it.copy(progress = v) } } },
             { SwitchRow("Live Updates", s.liveUpdates, "Orders, rides, sports (Android 16+)", Icons.Rounded.Bolt) { v -> set { it.copy(liveUpdates = v) } } },
             { SwitchRow("Recordings", s.recording, "Screen and voice", Icons.Rounded.FiberManualRecord) { v -> set { it.copy(recording = v) } } },

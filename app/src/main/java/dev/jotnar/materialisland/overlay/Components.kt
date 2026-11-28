@@ -255,6 +255,7 @@ fun chronoText(item: IslandItem, now: Long): String? {
 fun kindIcon(item: IslandItem): ImageVector = when (item.kind) {
     Kind.CALL -> Icons.Rounded.Call
     Kind.NAVIGATION -> Icons.Rounded.Navigation
+    Kind.TRIP -> if (item.trip?.type == dev.jotnar.materialisland.model.TripInfo.Type.RIDE) Icons.Rounded.LocalTaxi else Icons.Rounded.DeliveryDining
     Kind.TIMER -> Icons.Rounded.Timer
     Kind.RECORDING -> Icons.Rounded.FiberManualRecord
     Kind.LIVE -> Icons.Rounded.Bolt
@@ -279,6 +280,7 @@ fun kindIcon(item: IslandItem): ImageVector = when (item.kind) {
 fun kindLabel(kind: Kind): String = when (kind) {
     Kind.CALL -> "Call"
     Kind.NAVIGATION -> "Navigation"
+    Kind.TRIP -> "Trip"
     Kind.TIMER -> "Timer"
     Kind.RECORDING -> "Recording"
     Kind.LIVE -> "Live"
