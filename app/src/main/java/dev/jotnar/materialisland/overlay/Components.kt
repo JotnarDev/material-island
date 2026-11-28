@@ -258,6 +258,7 @@ fun kindIcon(item: IslandItem): ImageVector = when (item.kind) {
     Kind.TRIP -> dev.jotnar.materialisland.overlay.tripIcon(item.trip)
     Kind.TIMER -> Icons.Rounded.Timer
     Kind.RECORDING -> Icons.Rounded.FiberManualRecord
+    Kind.PRIVACY -> if (item.privacy?.camera == true) Icons.Rounded.Videocam else Icons.Rounded.Mic
     Kind.LIVE -> Icons.Rounded.Bolt
     Kind.MEDIA -> Icons.Rounded.MusicNote
     Kind.PROGRESS -> Icons.Rounded.Download
@@ -283,6 +284,7 @@ fun kindLabel(kind: Kind): String = when (kind) {
     Kind.TRIP -> "Trip"
     Kind.TIMER -> "Timer"
     Kind.RECORDING -> "Recording"
+    Kind.PRIVACY -> "Privacy"
     Kind.LIVE -> "Live"
     Kind.MEDIA -> "Now playing"
     Kind.PROGRESS -> "Progress"

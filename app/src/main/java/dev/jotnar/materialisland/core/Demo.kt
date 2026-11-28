@@ -17,7 +17,7 @@ object Demo {
     enum class Type(val label: String) {
         MEDIA("Music"), CALL("Call"), TIMER("Timer"), NAV("Navigation"),
         DOWNLOAD("Download"), MESSAGE("Message"), OTP("Code"), CHARGING("Charging"),
-        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"), PARCEL("Package"),
+        BLUETOOTH("Bluetooth"), RINGER("Vibrate"), RIDE("Ride"), ORDER("Order"), PARCEL("Package"), PRIVACY("Camera in use"),
     }
 
     private fun gradient(a: Int, b: Int): Bitmap {
@@ -171,6 +171,9 @@ object Demo {
                     ),
                 )
             }
+            Type.PRIVACY -> IslandStore.upsert(
+                PrivacyMonitor.item(cam = true, mic = true, app = "Camera", onClose = { IslandStore.remove(PrivacyMonitor.ID) }),
+            )
             Type.RINGER -> IslandStore.show(
                 IslandItem(id = "sys:RINGER", kind = Kind.RINGER, title = "Vibrate", value = "On", compactText = "vibrate", durationMs = 3000),
             )

@@ -264,6 +264,7 @@ fun ActivitiesScreen(onBack: () -> Unit) {
             { SwitchRow("Charging", s.charging, icon = Icons.Rounded.BatteryChargingFull) { v -> set { it.copy(charging = v) } } },
             { SwitchRow("Low battery", s.lowBattery, icon = Icons.Rounded.BatteryAlert) { v -> set { it.copy(lowBattery = v) } } },
             { SwitchRow("Bluetooth", s.bluetooth, icon = Icons.Rounded.Bluetooth) { v -> set { it.copy(bluetooth = v) } } },
+            { SwitchRow("Camera and microphone", s.privacyIndicator, "A dot while any app uses them", Icons.Rounded.PrivacyTip) { v -> set { it.copy(privacyIndicator = v) } } },
             { SwitchRow("Sound mode", s.ringer, "Sound, vibrate, silent", Icons.Rounded.Vibration) { v -> set { it.copy(ringer = v) } } },
             { SwitchRow("Airplane mode", s.airplane, icon = Icons.Rounded.AirplanemodeActive) { v -> set { it.copy(airplane = v) } } },
             { SwitchRow("Wired headphones", s.headphones, icon = Icons.Rounded.Headphones) { v -> set { it.copy(headphones = v) } } },

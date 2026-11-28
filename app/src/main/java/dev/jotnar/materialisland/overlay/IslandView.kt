@@ -792,6 +792,7 @@ private fun CompactLeft(item: IslandItem, p: IslandPalette, size: Dp, s: IslandS
         Kind.MEDIA -> MorphingArt(item.media?.art, item.media?.playing == true, size, s.morphingArt, p.accentContainer)
         Kind.CALL -> PulsingShapeIcon(Icons.Rounded.Call, CallGreen, Color.White, size, item.incoming)
         Kind.RECORDING -> PulsingShapeIcon(Icons.Rounded.FiberManualRecord, CallRed, Color.White, size, true)
+        Kind.PRIVACY -> PrivacyCompactIcon(item, size)
         Kind.TIMER -> Box(Modifier.size(size).clip(CircleShape).background(p.accentContainer), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Timer, null, tint = p.onAccentContainer, modifier = Modifier.size(size * 0.62f))
         }
@@ -816,6 +817,7 @@ private fun CompactRight(item: IslandItem, p: IslandPalette, size: Dp) {
         Kind.MEDIA -> Visualizer(item.media?.playing == true, p.accent)
         Kind.CALL -> if (item.incoming) T("Incoming", SoftGreen) else T(chronoText(item, rememberNow()) ?: "On call", SoftGreen)
         Kind.RECORDING -> T(chronoText(item, rememberNow()) ?: "REC", SoftRed)
+        Kind.PRIVACY -> PrivacyCompactRight(item, size)
         Kind.TIMER -> T(chronoText(item, rememberNow()) ?: item.compactText ?: item.title)
         Kind.NAVIGATION, Kind.TRIP -> T(item.compactText ?: item.title)
         Kind.PROGRESS, Kind.LIVE -> when {
@@ -1165,6 +1167,7 @@ private fun Card(
                         Kind.TIMER, Kind.RECORDING -> TimerBody(item, p, cb)
                         Kind.NAVIGATION -> NavBody(item, p, cb)
                         Kind.TRIP -> TripBody(item, p) { ActionRow(item, p, cb) }
+                        Kind.PRIVACY -> PrivacyBody(item, p) { ActionRow(item, p, cb) }
                         else -> ProgressBody(item, p, cb)
                     }
                 }

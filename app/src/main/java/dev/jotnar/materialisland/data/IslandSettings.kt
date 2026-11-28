@@ -149,6 +149,8 @@ data class IslandSettings(
     val navigation: Boolean = true,
     /** Viajes (Uber, DiDi...) y pedidos (Rappi, Uber Eats...) con tiempo de llegada. */
     val trips: Boolean = true,
+    /** Punto de privacidad: avisar mientras una app usa la cámara o el micrófono. */
+    val privacyIndicator: Boolean = true,
     val progress: Boolean = true,
     val liveUpdates: Boolean = true,
     val recording: Boolean = true,

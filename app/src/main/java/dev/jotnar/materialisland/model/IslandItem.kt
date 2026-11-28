@@ -22,6 +22,8 @@ enum class Kind(val priority: Int, val persistent: Boolean) {
     LIVE(65, true),
     MEDIA(60, true),
     PROGRESS(50, true),
+    /** Cámara o micrófono en uso: prioridad baja, así otra actividad la deja como burbuja al lado. */
+    PRIVACY(5, true),
 
     NOTIFICATION(0, false),
     OTP(0, false),
@@ -86,6 +88,9 @@ data class BudsInfo(
     val shown get() = level ?: listOfNotNull(left, right).minOrNull()
 }
 
+/** Qué sensores están en uso (Kind.PRIVACY). */
+data class PrivacyInfo(val camera: Boolean, val mic: Boolean)
+
 /** Viaje o pedido en curso (Kind.TRIP). [stage] va de 0 a 3 (ver [stages]). */
 data class TripInfo(
     val type: Type,
@@ -131,6 +136,8 @@ data class IslandItem(
     val media: MediaInfo? = null,
     /** Detalle de la carga (solo Kind.CHARGING). */
     val charge: ChargeInfo? = null,
+    /** Cámara / micrófono en uso (solo Kind.PRIVACY). */
+    val privacy: PrivacyInfo? = null,
     /** Viaje o pedido (solo Kind.TRIP). */
     val trip: TripInfo? = null,
     /** Auriculares Bluetooth (solo Kind.BLUETOOTH). */

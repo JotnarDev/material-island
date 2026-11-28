@@ -23,12 +23,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class IslandAccessibilityService : AccessibilityService() {
     private var overlay: IslandOverlay? = null
     private var system: SystemEventMonitor? = null
+    private var privacy: dev.jotnar.materialisland.core.PrivacyMonitor? = null
+    private var privacyJob: Job? = null
     private var headsUpJob: Job? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         overlay = IslandOverlay(this).also { it.start() }
         system = SystemEventMonitor(this).also { it.start() }
+        privacy = dev.jotnar.materialisland.core.PrivacyMonitor(this).also { it.start() }
+        privacyJob = CoroutineScope(Dispatchers.Main).launch {
+            SettingsStore.flow.map { it.privacyIndicator }.distinctUntilChanged().collect { privacy?.refresh() }
+        }
         running.value = true
         // Mientras la isla vive y es "la principal", el sistema no muestra emergentes.
         headsUpJob = CoroutineScope(Dispatchers.Main).launch {
@@ -69,6 +75,8 @@ class IslandAccessibilityService : AccessibilityService() {
         // Red de seguridad: si la isla se apaga, vuelven los emergentes del sistema.
         if (SettingsStore.current.islandIsPrimary) SystemHeadsUp.setEnabled(this, true)
         system?.stop(); system = null
+        privacyJob?.cancel(); privacyJob = null
+        privacy?.stop(); privacy = null
         overlay?.stop(); overlay = null
     }
 
