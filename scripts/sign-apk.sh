@@ -24,6 +24,7 @@ bt=$(ls -d "$sdk"/build-tools/*/ | sort -V | tail -1)
   --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
   --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD \
   --lineage "$here/signing/lineage.bin" \
+  --alignment-preserved \
   --min-sdk-version 31 --v1-signing-enabled false --v2-signing-enabled false --rotation-min-sdk-version 28 \
   --out "$out" "$in"
 "$bt/apksigner" verify --min-sdk-version 31 "$out"
