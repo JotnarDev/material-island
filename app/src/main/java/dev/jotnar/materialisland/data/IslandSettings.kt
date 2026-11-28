@@ -91,6 +91,23 @@ enum class IdleAction(val label: String) {
     }
 }
 
+/** Qué muestra la Liquid bar, en el orden en que aparece (izquierda: hora y notificaciones; derecha: el resto). */
+@Serializable
+enum class BarItem(val label: String, val hint: String, val onByDefault: Boolean) {
+    NOTIFICATIONS("Notification icons", "Apps with notifications, next to the clock", true),
+    NET_SPEED("Network speed", "Download and upload per second", false),
+    TEMPERATURE("Temperature", "Battery temperature, red when the phone is hot", false),
+    RAM("Memory", "RAM in use", false),
+    ALARM("Alarm", "When an alarm is set", true),
+    DND("Do Not Disturb", "When it is on", true),
+    RINGER("Vibrate and silent", "When the phone isn't on ring", true),
+    BLUETOOTH("Bluetooth", "When Bluetooth is on", true),
+    AIRPLANE("Airplane mode", "When it is on", true),
+    WIFI("Wi-Fi", "Signal of the network you're on", true),
+    MOBILE("Mobile signal", "Signal bars of your SIM", true),
+    BATTERY_PERCENT("Battery percentage", "Number inside the battery", true),
+}
+
 /** Qué notificaciones aparecen como aviso. */
 @Serializable
 /** Cómo sale la isla de la cámara. */
@@ -150,6 +167,8 @@ data class IslandSettings(
     val dropGapDp: Float = 8f,
     /** Estilo BAR: margen de la barra con los bordes de la pantalla. */
     val barMarginDp: Float = 6f,
+    /** Estilo BAR: elementos activados de la barra. */
+    val barItems: Set<BarItem> = BarItem.entries.filter { it.onByDefault }.toSet(),
 
     // ── Actividades ──────────────────────────────────────────────────
     val calls: Boolean = true,

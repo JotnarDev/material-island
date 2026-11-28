@@ -188,12 +188,29 @@ fun AnimationScreen(onBack: () -> Unit) {
             }) else emptyArray()),
         )
         Text(
-            if (s.openStyle == OpenStyle.BAR) "At rest, a black bar covers the status bar from edge to edge with the time and battery. When something happens it shrinks into the camera and a drop falls out of it."
+            if (s.openStyle == OpenStyle.BAR) "At rest, a black bar covers the status bar from edge to edge, with the clock, notification icons and the items you choose below. Items that don't fit next to the camera are left out. When something happens it shrinks into the camera and a drop falls out of it."
             else if (s.openStyle == OpenStyle.DROP) "A drop pulls away from the camera on a liquid neck, falls, bounces and opens into the island below it."
             else "The camera hole stretches into a pill, like a classic dynamic island.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
+        if (s.openStyle == OpenStyle.BAR) {
+            GroupTitle("Bar items")
+            Group(
+                *dev.jotnar.materialisland.data.BarItem.entries.map { item ->
+                    @Composable {
+                        SwitchRow(item.label, item in s.barItems, item.hint, barItemIcon(item)) { on ->
+                            set { it.copy(barItems = if (on) it.barItems + item else it.barItems - item) }
+                        }
+                    }
+                }.toTypedArray(),
+            )
+            Text(
+                "The clock is always there. Processor usage can't be shown: Android doesn't let apps read it.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
         GroupTitle("Springs")
         Group(
             {
@@ -495,4 +512,19 @@ private fun DemoHint() {
         FilledTonalButton(onClick = { Demo.run(Demo.Type.TIMER) }) { Text("Timer") }
         FilledTonalButton(onClick = { Demo.run(Demo.Type.MESSAGE) }) { Text("Message") }
     }
+}
+
+private fun barItemIcon(i: dev.jotnar.materialisland.data.BarItem) = when (i) {
+    dev.jotnar.materialisland.data.BarItem.NOTIFICATIONS -> Icons.Rounded.Notifications
+    dev.jotnar.materialisland.data.BarItem.NET_SPEED -> Icons.Rounded.Speed
+    dev.jotnar.materialisland.data.BarItem.TEMPERATURE -> Icons.Rounded.Thermostat
+    dev.jotnar.materialisland.data.BarItem.RAM -> Icons.Rounded.Memory
+    dev.jotnar.materialisland.data.BarItem.ALARM -> Icons.Rounded.Alarm
+    dev.jotnar.materialisland.data.BarItem.DND -> Icons.Rounded.DoNotDisturbOn
+    dev.jotnar.materialisland.data.BarItem.RINGER -> Icons.Rounded.Vibration
+    dev.jotnar.materialisland.data.BarItem.BLUETOOTH -> Icons.Rounded.Bluetooth
+    dev.jotnar.materialisland.data.BarItem.AIRPLANE -> Icons.Rounded.AirplanemodeActive
+    dev.jotnar.materialisland.data.BarItem.WIFI -> Icons.Rounded.Wifi
+    dev.jotnar.materialisland.data.BarItem.MOBILE -> Icons.Rounded.SignalCellularAlt
+    dev.jotnar.materialisland.data.BarItem.BATTERY_PERCENT -> Icons.Rounded.Battery5Bar
 }

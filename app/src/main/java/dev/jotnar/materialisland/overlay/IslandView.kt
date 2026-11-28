@@ -494,14 +494,18 @@ private fun IslandBody(ui: IslandUi, geo: IslandGeometry, s: IslandSettings, cb:
                     Box(
                         Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha },
                     ) {
-                        Row(
-                            Modifier.fillMaxSize().padding(horizontal = 16.dp).graphicsLayer { this.alpha = contentA },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BarClock(Color.White)
-                            Spacer(Modifier.weight(1f))
-                            BarBattery(Color.White)
-                        }
+                        // Sitio a cada lado: hasta las burbujas / At a glance o, si no hay, hasta la cámara.
+                        val pad = 16.dp
+                        val margin = s.barMarginDp.dp
+                        val camL = with(density) { (bubblesRect?.takeIf { showBubbles }?.left ?: (cx - dims.restD.toPx() / 2)).toDp() }
+                        val camR = with(density) { (glanceRect?.takeIf { showGlance }?.right ?: (cx + dims.restD.toPx() / 2)).toDp() }
+                        val screenW = geo.widthDp.dp
+                        BarStatusContent(
+                            s.barItems,
+                            leftMax = (camL - margin - pad - 8.dp).coerceAtLeast(0.dp),
+                            rightMax = (screenW - margin - pad - camR - 8.dp).coerceAtLeast(0.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = pad).graphicsLayer { this.alpha = contentA },
+                        )
                     }
                 }
             },

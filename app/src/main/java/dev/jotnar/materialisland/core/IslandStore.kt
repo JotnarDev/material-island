@@ -47,6 +47,9 @@ object IslandStore {
     fun removeUnread(id: String) { if (unreadMap.value.containsKey(id)) unreadMap.value = unreadMap.value - id }
     fun clearUnread() { unreadMap.value = emptyMap() }
 
+    /** Iconos de las apps con notificaciones (como la barra de estado del Pixel): paquete e icono pequeño. */
+    val statusIcons = MutableStateFlow<List<Pair<String, android.graphics.Bitmap>>>(emptyList())
+
     /** App en primer plano (la informa el servicio de accesibilidad). */
     val foregroundPkg = MutableStateFlow<String?>(null)
 

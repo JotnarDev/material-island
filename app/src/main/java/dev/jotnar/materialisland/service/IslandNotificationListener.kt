@@ -24,6 +24,36 @@ class IslandNotificationListener : NotificationListenerService() {
         media = MediaMonitor(this, ComponentName(this, IslandNotificationListener::class.java)).also { it.start() }
         // Recupera lo que ya está en curso (sin avisos de cosas viejas).
         runCatching { activeNotifications }.getOrNull()?.forEach { handle(it, initial = true) }
+        refreshStatusIcons()
+    }
+
+    private val iconCache = HashMap<String, android.graphics.Bitmap?>()
+
+    /** Una entrada por app, la más reciente primero; solo las que no son silenciosas, como hace el Pixel. */
+    private fun refreshStatusIcons() {
+        val list = runCatching { activeNotifications }.getOrNull() ?: return
+        val ranking = Ranking()
+        val out = list.asSequence()
+            .filter { it.packageName != packageName && (it.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) == 0 }
+            .filter { !currentRanking.getRanking(it.key, ranking) || ranking.importance >= NotificationManager.IMPORTANCE_DEFAULT }
+            .sortedByDescending { it.postTime }
+            .distinctBy { it.packageName }
+            .take(8)
+            .mapNotNull { sbn ->
+                val icon = sbn.notification.smallIcon ?: return@mapNotNull null
+                val key = sbn.packageName + ":" + runCatching { icon.resId }.getOrDefault(0) + ":" + icon.type
+                val bmp = iconCache.getOrPut(key) {
+                    runCatching {
+                        val d = icon.loadDrawable(this) ?: return@runCatching null
+                        val px = (20 * resources.displayMetrics.density).toInt()
+                        android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888).also { b ->
+                            val c = android.graphics.Canvas(b); d.setBounds(0, 0, px, px); d.draw(c)
+                        }
+                    }.getOrNull()
+                }
+                bmp?.let { sbn.packageName to it }
+            }.toList()
+        IslandStore.statusIcons.value = out
     }
 
     override fun onListenerDisconnected() {
@@ -33,15 +63,17 @@ class IslandNotificationListener : NotificationListenerService() {
         media = null
         IslandStore.clearWhere { it.id.startsWith("n:") }
         IslandStore.clearUnread()
+        IslandStore.statusIcons.value = emptyList()
         super.onListenerDisconnected()
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification) = handle(sbn, initial = false)
+    override fun onNotificationPosted(sbn: StatusBarNotification) { handle(sbn, initial = false); refreshStatusIcons() }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         lastHash.remove(sbn.key)
         IslandStore.removeUnread("n:" + sbn.key)
         IslandStore.remove("n:" + sbn.key)
+        refreshStatusIcons()
     }
 
     private fun handle(sbn: StatusBarNotification, initial: Boolean) {
