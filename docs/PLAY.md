@@ -22,7 +22,7 @@
 
 | Section | Answer |
 |---|---|
-| Privacy policy | A public URL is required, e.g. a `PRIVACY.md` on GitHub |
+| Privacy policy | https://github.com/JotnarDev/material-island/blob/main/PRIVACY.md |
 | Ads | Contains ads: **Yes** |
 | App access | All functionality available without special access |
 | Content rating | Utility, no user-generated content |
