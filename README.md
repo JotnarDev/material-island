@@ -77,6 +77,18 @@ timers, navigation, downloads, charging, verification codes, unread chats, plus 
     <td><img src="docs/screens/nav-expanded.png" alt="Navigation card"></td>
   </tr>
   <tr>
+    <td><img src="docs/screens/ride-expanded.png" alt="Ride card with route stages, driver and plate"></td>
+    <td><img src="docs/screens/delivery-expanded.png" alt="Food delivery card with route stages"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/buds-expanded.png" alt="Earbuds battery card with left, right and case"></td>
+    <td><img src="docs/screens/speaker-expanded.png" alt="Bluetooth speaker card with battery"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/privacy-expanded.png" alt="Camera and microphone in use"></td>
+    <td><img src="docs/screens/liquid-bar.png" alt="Liquid bar at rest, then shrunk into the camera with the island below"></td>
+  </tr>
+  <tr>
     <td><img src="docs/screens/msg-expanded.png" alt="Message with quick reply"></td>
     <td rowspan="2" valign="top"><img src="docs/screens/compact.png" alt="Compact states: music, timer, navigation, download, two activities at once, verification code, charging"></td>
   </tr>

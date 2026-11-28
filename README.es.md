@@ -65,6 +65,29 @@ clima, marcadores y bolsa. Funciona en cualquier Android 12 o superior, también
   </tr>
 </table>
 
+## Capturas
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screens/ride-expanded.png" alt="Tarjeta de viaje con etapas, conductor y matrícula"></td>
+    <td width="50%"><img src="docs/screens/delivery-expanded.png" alt="Tarjeta de pedido de comida con etapas"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/buds-expanded.png" alt="Batería de los audífonos: izquierdo, derecho y estuche"></td>
+    <td><img src="docs/screens/speaker-expanded.png" alt="Parlante Bluetooth con su batería"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/privacy-expanded.png" alt="Cámara y micrófono en uso"></td>
+    <td><img src="docs/screens/liquid-bar.png" alt="Barra líquida en reposo y recogida en la cámara con la isla debajo"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/music-expanded.png" alt="Tarjeta de música"></td>
+    <td><img src="docs/screens/call-expanded.png" alt="Llamada entrante"></td>
+  </tr>
+</table>
+
+<sub>Todas las capturas usan las actividades de prueba de la app.</sub>
+
 ## Qué hace
 
 | Tipo | Compacta | Expandida |
