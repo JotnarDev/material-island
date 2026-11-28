@@ -16,8 +16,8 @@ android {
         applicationId = "dev.jotnar.materialisland"
         minSdk = 31
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.2.2"
+        versionCode = 8
+        versionName = "1.3.0"
     }
 
     buildTypes {

@@ -1,0 +1,5 @@
+- Headphone battery with an animated illustration (left, right and case when available).
+- Rides and deliveries: arrival time, route with stages, driver and plate.
+- Green dot while the camera or microphone is in use.
+- At a glance: next Google Calendar event with a Join button.
+- Finance view removed: no more Yahoo Finance.

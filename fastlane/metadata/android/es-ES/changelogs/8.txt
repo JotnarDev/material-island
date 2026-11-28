@@ -1,0 +1,5 @@
+- Batería de auriculares con ilustración animada (izquierdo, derecho y estuche si están disponibles).
+- Viajes y pedidos: hora de llegada, ruta por etapas, conductor y matrícula.
+- Punto verde mientras se usa la cámara o el micrófono.
+- At a glance: próximo evento de Google Calendar con botón para unirse.
+- Se quita la vista de bolsa: ya no usa Yahoo Finance.
