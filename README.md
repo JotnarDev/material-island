@@ -142,9 +142,14 @@ HyperOS adds a few extra locks. The app shows a warning card and shortcuts for e
 
 You need JDK 17 and the Android SDK with the `android-37.2` platform.
 
+There are two versions:
+
+- **foss** is the one on GitHub. It has no ads and no Google libraries, and it updates itself from GitHub releases.
+- **play** is for Google Play. It shows ads only in the settings screens (never on the island) and is updated by Play.
+
 ```bash
-./gradlew assembleRelease
-adb install -r app/build/outputs/apk/release/app-release.apk
+./gradlew assembleFossRelease
+adb install -r app/build/outputs/apk/foss/release/app-foss-release.apk
 ```
 
 ### Grant permissions over ADB
@@ -251,7 +256,9 @@ Ways to help:
 
 - **Star** the repo and share it.
 - **Report bugs** with your phone model. Every new device helps.
-- **Donate** on Ko-fi (link coming soon).
+- **Buy me a coffee** on [Ko-fi](https://ko-fi.com/jotnardev).
+
+<p><a href="https://ko-fi.com/jotnardev"><img alt="Support on Ko-fi" height="40" src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white"></a></p>
 
 ## Credits
 

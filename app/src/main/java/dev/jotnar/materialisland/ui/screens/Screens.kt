@@ -427,20 +427,38 @@ fun AboutScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.\n\n" +
-                        "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, and the app can check GitHub for new versions. No account, no tracking.",
+                        if (dev.jotnar.materialisland.ads.Ads.ENABLED) {
+                            "The island never shows ads and never tracks you. The settings screens show ads from Google AdMob, which may use your advertising ID if you agree. " +
+                                "Only At a glance, if you turn it on, downloads weather, scores and quotes."
+                        } else {
+                            "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, and the app can check GitHub for new versions. No account, no ads, no tracking."
+                        },
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
-        GroupTitle("Updates")
-        dev.jotnar.materialisland.ui.UpdateCard(always = true)
-        Spacer(Modifier.height(12.dp))
-        val st = settings()
-        Group({
-            SwitchRow("Check when opening the app", st.autoUpdateCheck, "One request to GitHub, nothing about you is sent") { v ->
-                set { it.copy(autoUpdateCheck = v) }
-            }
-        })
+        if (dev.jotnar.materialisland.BuildConfig.SELF_UPDATE) {
+            GroupTitle("Updates")
+            dev.jotnar.materialisland.ui.UpdateCard(always = true)
+            Spacer(Modifier.height(12.dp))
+            val st = settings()
+            Group({
+                SwitchRow("Check when opening the app", st.autoUpdateCheck, "One request to GitHub, nothing about you is sent") { v ->
+                    set { it.copy(autoUpdateCheck = v) }
+                }
+            })
+        }
+        GroupTitle("Support")
+        dev.jotnar.materialisland.ui.KofiCard()
+        val act = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+        if (dev.jotnar.materialisland.ads.Ads.hasPrivacyOptions() && act != null) {
+            Spacer(Modifier.height(12.dp))
+            Group({
+                dev.jotnar.materialisland.ui.NavRow("Ad privacy choices", "Change what you agreed to for ads", Icons.Rounded.PrivacyTip) {
+                    dev.jotnar.materialisland.ads.Ads.privacyOptions(act)
+                }
+            })
+        }
         GroupTitle("Ideas borrowed from")
         Group(
             { Credit("Expressive Cutout", "Accessibility window, partial touch region, Expressive style") },

@@ -97,6 +97,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Solo hace algo en la versión de Play (consentimiento y anuncios de las pantallas de ajustes).
+        dev.jotnar.materialisland.ads.Ads.init(this)
         setContent { AppTheme { App() } }
     }
 }
@@ -198,6 +200,7 @@ private fun HomeScreen(go: (Screen) -> Unit) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { perms = readPerms(ctx) }
     val running by IslandAccessibilityService.running.collectAsStateWithLifecycle()
     val listening by IslandNotificationListener.connected.collectAsStateWithLifecycle()
+    var showDisclosure by remember { mutableStateOf(false) }
     val btLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { perms = readPerms(ctx) }
 
     SettingsScaffold(
@@ -209,11 +212,12 @@ private fun HomeScreen(go: (Screen) -> Unit) {
         Spacer(Modifier.height(12.dp))
         DemoChips()
 
-        // Versión nueva en GitHub: se mira una vez al abrir la app (si está activado).
-        val auto = dev.jotnar.materialisland.data.SettingsStore.flow.collectAsStateWithLifecycle().value.autoUpdateCheck
+        // Versión nueva en GitHub: se mira una vez al abrir la app (si está activado). En Play, la actualiza Play.
+        val auto = dev.jotnar.materialisland.BuildConfig.SELF_UPDATE &&
+            dev.jotnar.materialisland.data.SettingsStore.flow.collectAsStateWithLifecycle().value.autoUpdateCheck
         androidx.compose.runtime.LaunchedEffect(auto) { if (auto) dev.jotnar.materialisland.core.Updater.autoCheck(ctx) }
         val upd by dev.jotnar.materialisland.core.Updater.state.collectAsStateWithLifecycle()
-        if (upd is dev.jotnar.materialisland.core.Updater.State.Available || upd is dev.jotnar.materialisland.core.Updater.State.Downloading ||
+        if (dev.jotnar.materialisland.BuildConfig.SELF_UPDATE) if (upd is dev.jotnar.materialisland.core.Updater.State.Available || upd is dev.jotnar.materialisland.core.Updater.State.Downloading ||
             upd is dev.jotnar.materialisland.core.Updater.State.Installing || upd is dev.jotnar.materialisland.core.Updater.State.Failed
         ) {
             Spacer(Modifier.height(12.dp))
@@ -245,7 +249,12 @@ private fun HomeScreen(go: (Screen) -> Unit) {
                     PermRow(
                         "Accessibility service", "To draw the island over the status bar",
                         Icons.Rounded.Accessibility, perms.accessibility,
-                    ) { ctx.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+                    ) {
+                        // Antes de mandar a los ajustes de accesibilidad, el aviso destacado (una vez aceptado, ya no sale).
+                        if (dev.jotnar.materialisland.data.SettingsStore.current.a11yDisclosureAccepted) {
+                            ctx.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        } else showDisclosure = true
+                    }
                 },
                 {
                     PermRow(
@@ -290,6 +299,20 @@ private fun HomeScreen(go: (Screen) -> Unit) {
         Group(
             { NavRow("Backup", "Export or import your settings", Icons.Rounded.SettingsBackupRestore) { go(Screen.BACKUP) } },
             { NavRow("About", "Credits and privacy", Icons.Rounded.Info) { go(Screen.ABOUT) } },
+        )
+        // Versión de Play: un anuncio aquí abajo, en ajustes. Versión libre: el botón de Ko-fi en su lugar.
+        Spacer(Modifier.height(16.dp))
+        if (dev.jotnar.materialisland.ads.Ads.ENABLED) dev.jotnar.materialisland.ads.SettingsAd()
+        else KofiCard(compact = true)
+    }
+    if (showDisclosure) {
+        AccessibilityDisclosure(
+            onAgree = {
+                showDisclosure = false
+                dev.jotnar.materialisland.data.SettingsStore.update { it.copy(a11yDisclosureAccepted = true) }
+                ctx.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            },
+            onDismiss = { showDisclosure = false },
         )
     }
 }

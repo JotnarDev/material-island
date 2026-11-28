@@ -23,8 +23,8 @@ Open a [feature request](https://github.com/JotnarDev/material-island/issues/new
 2. Fork the repo and create a branch from `main`.
 3. Build with JDK 17 and the Android SDK (`android-37.2` platform):
    ```bash
-   ./gradlew assembleDebug
-   adb install -r app/build/outputs/apk/debug/app-debug.apk
+   ./gradlew assembleFossDebug
+   adb install -r app/build/outputs/apk/foss/debug/app-foss-debug.apk
    ```
 4. Turn on notification access and the accessibility service (see the README). The **Try the island** buttons in the app show demo activities, so you can test without real calls or music.
 5. Open a pull request that explains what changed and how you tested it. Screenshots or GIFs for visual changes, please.

@@ -139,9 +139,14 @@ La app muestra un aviso con accesos directos cuando detecta estos bloqueos.
 
 Requisitos: JDK 17, Android SDK con la plataforma `android-37.2`.
 
+Hay dos versiones:
+
+- **foss** es la de GitHub. No tiene anuncios ni librerías de Google y se actualiza sola desde las releases de GitHub.
+- **play** es para Google Play. Muestra anuncios solo en las pantallas de ajustes (nunca en la isla) y la actualiza Play.
+
 ```bash
-./gradlew assembleRelease
-adb install -r app/build/outputs/apk/release/app-release.apk
+./gradlew assembleFossRelease
+adb install -r app/build/outputs/apk/foss/release/app-foss-release.apk
 ```
 
 Permisos por ADB (evita los pasos manuales y el aviso de "ajuste restringido"):
@@ -202,7 +207,9 @@ Formas de ayudar:
 
 - Dale una **estrella** al repo y compártelo.
 - **Reporta errores** con el modelo de tu teléfono. Cada dispositivo nuevo ayuda.
-- **Dona** en Ko-fi (enlace pronto).
+- **Invítame a un café** en [Ko-fi](https://ko-fi.com/jotnardev).
+
+<p><a href="https://ko-fi.com/jotnardev"><img alt="Apoyar en Ko-fi" height="40" src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white"></a></p>
 
 ## Créditos (ideas, código propio)
 

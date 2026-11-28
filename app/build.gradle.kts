@@ -29,12 +29,30 @@ android {
         }
     }
 
+    // Dos versiones:
+    //  · foss: la de GitHub, Obtainium, F-Droid e IzzyOnDroid. Sin anuncios ni código de Google; se actualiza sola.
+    //  · play: para Google Play. Anuncios solo en las pantallas de ajustes (nunca en la isla); la actualiza Play.
+    flavorDimensions += "store"
+    productFlavors {
+        create("foss") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+            // IDs de PRUEBA de AdMob. Antes de publicar en Play, cambiarlos por los de tu cuenta de AdMob.
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 }
 
 kotlin {
@@ -60,4 +78,8 @@ dependencies {
     implementation("androidx.palette:palette-ktx:1.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.2")
+
+    // Solo en la versión de Play: anuncios en ajustes y el consentimiento (RGPD) de Google.
+    "playImplementation"("com.google.android.gms:play-services-ads:25.5.0")
+    "playImplementation"("com.google.android.ump:user-messaging-platform:4.0.0")
 }

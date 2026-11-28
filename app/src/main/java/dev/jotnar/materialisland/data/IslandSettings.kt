@@ -194,6 +194,9 @@ data class IslandSettings(
     /** Accesos de la tarjeta, en el orden en que se muestran. */
     val shortcuts: List<IdleAction> = IdleAction.defaultShortcuts,
 
+    /** El usuario aceptó el aviso de uso de la API de accesibilidad. */
+    val a11yDisclosureAccepted: Boolean = false,
+
     /** Mirar si hay versión nueva al abrir la app (una consulta a GitHub). */
     val autoUpdateCheck: Boolean = true,
 
