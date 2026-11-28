@@ -2,7 +2,14 @@ package dev.jotnar.materialisland.ads
 
 import android.app.Activity
 import android.util.Log
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,22 +70,37 @@ object Ads {
     internal val readyFlow get() = ready
 }
 
-/** Banner adaptativo al ancho de la pantalla. */
+/**
+ * Banner adaptativo dentro de un marco con el estilo de las tarjetas de ajustes y la etiqueta "Sponsored".
+ * El anuncio en sí no se recorta ni se tapa (reglas de AdMob): el marco solo lo rodea.
+ */
 @Composable
 fun SettingsAd(modifier: Modifier = Modifier) {
     val ready by Ads.readyFlow.collectAsState()
     if (!ready) return
     val ctx = LocalContext.current
-    val width = LocalConfiguration.current.screenWidthDp - 32
-    AndroidView(
+    val pad = 12
+    val width = LocalConfiguration.current.screenWidthDp - 32 - 2 * pad
+    Surface(
+        shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier.fillMaxWidth(),
-        factory = {
-            AdView(ctx).apply {
-                adUnitId = BuildConfig.ADMOB_BANNER_ID
-                setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(ctx, width))
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        onRelease = { it.destroy() },
-    )
+    ) {
+        Column(Modifier.padding(start = pad.dp, end = pad.dp, top = 10.dp, bottom = pad.dp)) {
+            Text(
+                "Sponsored", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
+            )
+            AndroidView(
+                modifier = Modifier.fillMaxWidth(),
+                factory = {
+                    AdView(ctx).apply {
+                        adUnitId = BuildConfig.ADMOB_BANNER_ID
+                        setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(ctx, width))
+                        loadAd(AdRequest.Builder().build())
+                    }
+                },
+                onRelease = { it.destroy() },
+            )
+        }
+    }
 }
