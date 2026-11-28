@@ -26,8 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingDown
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,8 +77,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.PathEffect
 
-private val Up = Color(0xFF34D27B)
-private val Down = Color(0xFFFF4D6A)
 private val Live = Color(0xFFFF5449)
 private val Sun = Color(0xFFFFC21A)
 private val Moon = Color(0xFFCBC4FF)
@@ -181,20 +177,6 @@ private fun ChipContent(v: GlanceView, data: Glance.Data, h: Dp) {
                 }
             }
         }
-        GlanceView.FINANCE -> {
-            val q = data.quotes.firstOrNull()
-            if (q != null) {
-                val up = q.changePct >= 0
-                textColor = if (up) Up else Down
-                text = String.format(Locale.getDefault(), "%s%.1f%%", if (up) "+" else "−", abs(q.changePct))
-                ({
-                    Icon(
-                        if (up) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown, null,
-                        tint = textColor, modifier = Modifier.size(icon * 0.9f),
-                    )
-                })
-            } else ({ Icon(Icons.Rounded.ShowChart, null, tint = Color.White, modifier = Modifier.size(icon)) })
-        }
         GlanceView.ALERTS -> {
             val first = data.alerts.firstOrNull()
             if (first != null) {
@@ -251,7 +233,6 @@ internal fun GlanceCard(s: IslandSettings, p: IslandPalette, d: Dims, ui: Island
                 GlanceView.CALENDAR -> Unit
                 GlanceView.WEATHER -> WeatherCard(data, s, p)
                 GlanceView.SPORTS -> Padded(view, data, p) { SportsPage(data.games, p) }
-                GlanceView.FINANCE -> Padded(view, data, p) { FinancePage(data.quotes, p) }
                 GlanceView.ALERTS -> Padded(view, data, p) { AlertsPage(data.alerts, p) }
             }
         }
@@ -282,7 +263,7 @@ private fun Header(v: GlanceView, data: Glance.Data, p: IslandPalette) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(viewIcon(v), null, tint = p.accent, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Caption(if (v == GlanceView.FINANCE) "My stocks" else v.label, p.variant)
+        Caption(v.label, p.variant)
         Spacer(Modifier.weight(1f))
         if (v != GlanceView.CALENDAR) Text(updatedNote(data), style = MaterialTheme.typography.labelSmall, color = p.variant.copy(alpha = 0.7f))
     }
@@ -430,119 +411,6 @@ private fun skyTint(code: Int, day: Boolean): Color = when {
     else -> Color(0xFF34589F)
 }
 
-// ── Bolsa ─────────────────────────────────────────────────────────────
-
-/** Lista de acciones: logo, ticker y nombre, gráfica del día con el cierre anterior punteado, precio y variación. */
-@Composable
-private fun FinancePage(quotes: List<Glance.Quote>, p: IslandPalette) {
-    if (quotes.isEmpty()) return Empty(Icons.Rounded.ShowChart, "No quotes", "Add symbols in At a glance settings.", p)
-    Column {
-        quotes.take(4).forEachIndexed { i, q ->
-            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
-            val up = q.changePct >= 0
-            val c = if (up) Up else Down
-            Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
-                TickerLogo(q.symbol, q.logo, 40.dp)
-                Spacer(Modifier.width(Sp.group))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        q.symbol.removePrefix("^"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color.White, maxLines = 1,
-                    )
-                    Text(q.name, style = MaterialTheme.typography.bodySmall, color = p.variant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Spacer(Modifier.width(Sp.iconText))
-                Sparkline(q.closes, q.prevClose.toFloat(), c, Modifier.width(84.dp).height(34.dp))
-                Spacer(Modifier.width(Sp.group))
-                Column(Modifier.widthIn(min = 72.dp), horizontalAlignment = Alignment.End) {
-                    Text(
-                        price(q.price), style = MaterialTheme.typography.titleSmall.merge(Num).copy(fontWeight = FontWeight.SemiBold),
-                        color = Color.White, maxLines = 1,
-                    )
-                    Text(
-                        (if (up) "+" else "−") + String.format(Locale.getDefault(), "%.2f%%", abs(q.changePct)),
-                        style = MaterialTheme.typography.labelLarge.merge(Num), color = c,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun price(v: Double) = if (v >= 1000) String.format(Locale.getDefault(), "%,.0f", v) else String.format(Locale.getDefault(), "%,.2f", v)
-
-/** Logo redondo: un icono para índices, cripto y divisas; para el resto, la inicial sobre un color fijo por símbolo. */
-@Composable
-private fun TickerLogo(symbol: String, logo: android.graphics.Bitmap?, size: Dp) {
-    if (logo != null) return CompanyLogo(logo, size)
-    val sym = symbol.uppercase()
-    data class L(val bg: Color, val fg: Color, val icon: ImageVector?)
-    val l = when {
-        sym.startsWith("^") -> L(Color(0xFF26314F), Color.White, Icons.Rounded.ShowChart)
-        sym.startsWith("BTC") -> L(Color(0xFFF7931A), Color.White, Icons.Rounded.CurrencyBitcoin)
-        sym.contains("-USD") || sym.contains("-EUR") -> L(Color(0xFF627EEA), Color.White, null)
-        sym.endsWith("=X") -> L(Color(0xFF1F5E3A), Color.White, Icons.Rounded.CurrencyExchange)
-        else -> {
-            val pal = listOf(
-                Color.White to Color.Black, Color(0xFFE53935) to Color.White, Color(0xFF1E88E5) to Color.White,
-                Color(0xFF2E7D32) to Color.White, Color(0xFF8E24AA) to Color.White, Color(0xFF3949AB) to Color.White,
-                Color(0xFF2F3340) to Color.White, Color(0xFFFFB300) to Color.Black,
-            )
-            val (bg, fg) = pal[Math.floorMod(sym.hashCode(), pal.size)]
-            L(bg, fg, null)
-        }
-    }
-    Box(Modifier.size(size).clip(CircleShape).background(l.bg), contentAlignment = Alignment.Center) {
-        if (l.icon != null) Icon(l.icon, null, tint = l.fg, modifier = Modifier.size(size * 0.55f))
-        else Text(
-            sym.removePrefix("^").take(1), color = l.fg,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        )
-    }
-}
-
-/**
- * Logo real. Si el icono ya trae su propio fondo (esquinas opacas, como Amazon o NVIDIA) llena el círculo;
- * si es transparente (Tesla, Nike) va sobre un círculo blanco con margen, como en la referencia.
- */
-@Composable
-private fun CompanyLogo(bmp: android.graphics.Bitmap, size: Dp) {
-    val img = remember(bmp) { bmp.asImageBitmap() }
-    val filled = remember(bmp) {
-        val m = bmp.width / 10
-        listOf(m to m, bmp.width - 1 - m to m, m to bmp.height - 1 - m, bmp.width - 1 - m to bmp.height - 1 - m)
-            .all { (x, y) -> android.graphics.Color.alpha(bmp.getPixel(x, y)) > 200 }
-    }
-    Box(Modifier.size(size).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-        Image(
-            img, null,
-            modifier = if (filled) Modifier.fillMaxSize() else Modifier.size(size * 0.66f),
-            contentScale = if (filled) androidx.compose.ui.layout.ContentScale.Crop else androidx.compose.ui.layout.ContentScale.Fit,
-        )
-    }
-}
-
-@Composable
-private fun Sparkline(values: List<Float>, base: Float, color: Color, modifier: Modifier) {
-    if (values.size < 2) return Spacer(modifier)
-    Canvas(modifier) {
-        val min = minOf(values.min(), base); val max = maxOf(values.max(), base)
-        val span = (max - min).takeIf { it > 0f } ?: 1f
-        fun y(v: Float) = size.height - (v - min) / span * size.height
-        // Cierre anterior, punteado.
-        drawLine(
-            Color.White.copy(alpha = 0.35f), Offset(0f, y(base)), Offset(size.width, y(base)), 1.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
-        )
-        val path = Path()
-        values.forEachIndexed { i, v ->
-            val x = size.width * i / (values.size - 1)
-            if (i == 0) path.moveTo(x, y(v)) else path.lineTo(x, y(v))
-        }
-        drawPath(path, color, style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
-}
-
 // ── Deportes ──────────────────────────────────────────────────────────
 
 @Composable
@@ -617,7 +485,7 @@ private fun sportIcon(sport: String): ImageVector = when (sport) {
 
 @Composable
 private fun AlertsPage(alerts: List<Glance.Alert>, p: IslandPalette) {
-    if (alerts.isEmpty()) return Empty(Icons.Rounded.CheckCircle, "All clear", "No events soon, alarms, weather alerts or big market moves.", p)
+    if (alerts.isEmpty()) return Empty(Icons.Rounded.CheckCircle, "All clear", "No events soon, alarms or weather alerts.", p)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         alerts.take(3).forEach { a ->
             val tint = alertTint(a.kind)
@@ -648,8 +516,6 @@ private fun alertIcon(k: Glance.AlertKind): ImageVector = when (k) {
     Glance.AlertKind.COLD -> Icons.Rounded.Thermostat
     Glance.AlertKind.HEAT -> Icons.Rounded.LocalFireDepartment
     Glance.AlertKind.LIVE -> Icons.Rounded.SportsScore
-    Glance.AlertKind.MARKET_UP -> Icons.AutoMirrored.Rounded.TrendingUp
-    Glance.AlertKind.MARKET_DOWN -> Icons.AutoMirrored.Rounded.TrendingDown
 }
 
 private fun alertTint(k: Glance.AlertKind): Color = when (k) {
@@ -660,14 +526,11 @@ private fun alertTint(k: Glance.AlertKind): Color = when (k) {
     Glance.AlertKind.UV -> Sun
     Glance.AlertKind.HEAT -> Color(0xFFFFB68A)
     Glance.AlertKind.LIVE -> Live
-    Glance.AlertKind.MARKET_UP -> Up
-    Glance.AlertKind.MARKET_DOWN -> Down
 }
 
 private fun viewIcon(v: GlanceView): ImageVector = when (v) {
     GlanceView.WEATHER -> Icons.Rounded.WbSunny
     GlanceView.CALENDAR -> Icons.Rounded.CalendarToday
     GlanceView.SPORTS -> Icons.Rounded.EmojiEvents
-    GlanceView.FINANCE -> Icons.Rounded.ShowChart
     GlanceView.ALERTS -> Icons.Rounded.NotificationsActive
 }

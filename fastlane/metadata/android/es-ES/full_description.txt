@@ -9,7 +9,7 @@
 <li><b>Carga:</b> un anillo ondulado y una tarjeta con tiempo restante, velocidad y temperatura</li>
 <li><b>Códigos de verificación:</b> cópialos con un toque</li>
 <li><b>Chats sin leer</b> como burbujas junto a la cámara</li>
-<li><b>At a glance</b> (opcional): tiempo, marcadores en vivo, bolsa y alertas</li>
+<li><b>At a glance</b> (opcional): tiempo, próximo evento del calendario, marcadores en vivo y alertas</li>
 <li><b>Accesos directos:</b> toca la cámara en reposo para abrir los que elijas</li>
 </ul>
 
@@ -30,6 +30,6 @@
 </ul>
 
 <p><b>Servicios de red</b></p>
-<p>At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo, los marcadores de ESPN, las cotizaciones de Yahoo Finance y los logos de empresas del servicio de favicons de Google. El resto de la app funciona sin conexión.</p>
+<p>At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo y los marcadores de ESPN. El calendario se lee en el teléfono y nunca sale de él. El resto de la app funciona sin conexión.</p>
 
 <p>Funciona en Android 12 o superior, también en Xiaomi, Redmi y POCO. Gratis, sin anuncios, sin cuenta y sin rastreo.</p>

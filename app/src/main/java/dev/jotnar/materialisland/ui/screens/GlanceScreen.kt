@@ -113,8 +113,8 @@ fun GlanceScreen(onBack: () -> Unit) {
             },
         )
         note(
-            "This is the only part of Material Island that uses the internet: weather from Open-Meteo, scores from ESPN and " +
-                "quotes from Yahoo Finance. No account, no tracking. Without a connection only this card pauses; the rest of the island keeps working. " +
+            "This is the only part of Material Island that uses the internet: weather from Open-Meteo and scores from ESPN. " +
+                "No account, no tracking. Without a connection only this card pauses; the rest of the island keeps working. " +
                 "The calendar is read on the phone, from the Google Calendar accounts already on it, and never leaves it.",
         )
 
@@ -202,12 +202,6 @@ fun GlanceScreen(onBack: () -> Unit) {
                             "Separated by commas. With teams set, only their games show. Empty shows every game.",
                         ) { t -> set { it.copy(glanceTeams = t) } }
                     })
-                    GlanceView.FINANCE -> listOf({
-                        TextSetting(
-                            "Symbols", s.glanceSymbols, "^GSPC, AAPL, BTC-USD, EURUSD=X",
-                            "Up to 4, as Yahoo Finance writes them: ^GSPC is the S&P 500, BTC-USD bitcoin, EURUSD=X euro to dollar.",
-                        ) { t -> set { it.copy(glanceSymbols = t) } }
-                    })
                     GlanceView.ALERTS -> emptyList()
                 }
                 Group(*(listOf(toggle) + options).toTypedArray())
@@ -263,8 +257,7 @@ private fun viewSubtitle(v: GlanceView) = when (v) {
     GlanceView.WEATHER -> "Now, high and low, next hours"
     GlanceView.CALENDAR -> "Your next event from Google Calendar, with a join button"
     GlanceView.SPORTS -> "Live scores and upcoming games"
-    GlanceView.FINANCE -> "Your stocks with today's chart"
-    GlanceView.ALERTS -> "Next event, alarm, rain, UV, live games, big moves"
+    GlanceView.ALERTS -> "Next event, alarm, rain, UV, live games"
 }
 
 private fun isInstalled(ctx: android.content.Context, pkg: String) =
@@ -274,7 +267,6 @@ private fun viewIcon(v: GlanceView) = when (v) {
     GlanceView.WEATHER -> Icons.Rounded.WbSunny
     GlanceView.CALENDAR -> Icons.Rounded.CalendarToday
     GlanceView.SPORTS -> Icons.Rounded.EmojiEvents
-    GlanceView.FINANCE -> Icons.Rounded.ShowChart
     GlanceView.ALERTS -> Icons.Rounded.NotificationsActive
 }
 

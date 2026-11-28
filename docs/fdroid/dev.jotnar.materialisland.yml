@@ -1,7 +1,6 @@
 AntiFeatures:
   NonFreeNet:
-    en-US: At a glance (off by default) fetches sports scores from ESPN and stock
-      quotes from Yahoo Finance.
+    en-US: At a glance (off by default) fetches sports scores from ESPN.
 Categories:
   - System
   - Theming

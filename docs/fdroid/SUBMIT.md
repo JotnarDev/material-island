@@ -17,7 +17,7 @@ F-Droid builds the app from source with the `fdroid` flavor: no ads, no Google l
 ## Notes for reviewers
 
 - **Accessibility service:** it only draws the island over the status bar and tracks which app is in the foreground. It doesn't read window content. The app shows a prominent disclosure before sending the user to the accessibility settings.
-- **Network:** only *At a glance* uses the internet, and it is off by default. It uses Open-Meteo, ESPN, Yahoo Finance and Google's favicon service, hence the `NonFreeNet` anti-feature.
+- **Network:** only *At a glance* uses the internet, and it is off by default. It uses Open-Meteo and ESPN, hence the `NonFreeNet` anti-feature.
 - **AI disclosure:** large parts of the code were written with an AI coding assistant (Claude). F-Droid's inclusion policy has no rule against this, but stating it up front is honest and avoids surprises.
 
 ## Signatures: reproducible builds

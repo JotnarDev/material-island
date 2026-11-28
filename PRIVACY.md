@@ -17,9 +17,7 @@ Material Island is a dynamic island app for Android made by JotnarDev. This poli
 **At a glance** is off by default. Only when you turn it on, the app requests:
 
 - **weather** from Open-Meteo (open-meteo.com), sending the city you choose or your approximate location if you tap *Use my location*;
-- **sports scores** from ESPN;
-- **stock quotes** from Yahoo Finance;
-- **company logos** from Google's favicon service.
+- **sports scores** from ESPN.
 
 These requests contain no identifier of you. Each service's own privacy policy applies to them.
 

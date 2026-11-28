@@ -431,9 +431,9 @@ fun AboutScreen(onBack: () -> Unit) {
                     "A dynamic island in the Pixel style: Material You, Material 3 Expressive shapes and springs.\n\n" +
                         if (dev.jotnar.materialisland.ads.Ads.ENABLED) {
                             "The island never shows ads and never tracks you. The settings screens show ads from Google AdMob, which may use your advertising ID if you agree. " +
-                                "Only At a glance, if you turn it on, downloads weather, scores and quotes."
+                                "Only At a glance, if you turn it on, downloads weather and scores."
                         } else {
-                            "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather, scores and quotes, and the app can check GitHub for new versions. No account, no ads, no tracking."
+                            "Nothing leaves the phone. Only At a glance, if you turn it on, downloads weather and scores, and the app can check GitHub for new versions. No account, no ads, no tracking."
                         },
                     style = MaterialTheme.typography.bodyMedium,
                 )

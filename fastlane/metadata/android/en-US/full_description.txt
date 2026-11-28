@@ -9,7 +9,7 @@
 <li><b>Charging:</b> a wavy ring and a card with time to full, speed and temperature</li>
 <li><b>Verification codes:</b> copy the code with one tap</li>
 <li><b>Unread chats</b> as small bubbles next to the camera</li>
-<li><b>At a glance</b> (optional): weather, live sports scores, stocks and alerts</li>
+<li><b>At a glance</b> (optional): weather, next calendar event, live sports scores and alerts</li>
 <li><b>Shortcuts:</b> tap the camera at rest to open a card with the shortcuts you choose</li>
 </ul>
 
@@ -30,6 +30,6 @@
 </ul>
 
 <p><b>Network services</b></p>
-<p>At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo, scores from ESPN and quotes from Yahoo Finance, and company logos from Google's favicon service. The rest of the app works fully offline.</p>
+<p>At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo and scores from ESPN. The calendar is read on the phone and never leaves it. The rest of the app works fully offline.</p>
 
 <p>Works on Android 12 and newer, including Xiaomi, Redmi and POCO phones. Free, no ads, no account, no tracking.</p>

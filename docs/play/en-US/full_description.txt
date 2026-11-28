@@ -9,7 +9,7 @@ What shows up in the island
 • Charging: a wavy ring and a card with time to full, speed and temperature
 • Verification codes: copy the code with one tap
 • Unread chats as small bubbles next to the camera
-• At a glance (optional): weather, live sports scores, stocks and alerts
+• At a glance (optional): weather, next calendar event, live sports scores and alerts
 • Shortcuts: tap the camera at rest to open a card with the shortcuts you choose
 
 Make it yours
@@ -27,6 +27,6 @@ Permissions
 • Internet is only used by At a glance, and only if you turn it on.
 
 Network services
-At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo, scores from ESPN and quotes from Yahoo Finance, and company logos from Google's favicon service. The rest of the app works fully offline.
+At a glance is off by default. When you turn it on, it fetches weather from Open-Meteo and scores from ESPN. The calendar is read on the phone and never leaves it. The rest of the app works fully offline.
 
 Works on Android 12 and newer, including Xiaomi, Redmi and POCO phones. Free, with no account. A small ad appears only in the settings screens, never on the island itself. Prefer no ads at all? The open-source version on GitHub and F-Droid has none.

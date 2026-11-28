@@ -297,7 +297,7 @@ private fun HomeScreen(go: (Screen) -> Unit) {
             { NavRow("Gestures", "Tap, hold, swipe", Icons.Rounded.TouchApp) { go(Screen.GESTURES) } },
             { NavRow("Behavior", "Hiding, auto-collapse, haptics", Icons.Rounded.Tune) { go(Screen.BEHAVIOR) } },
             { NavRow("Apps", "Choose which apps can use the island", Icons.Rounded.Apps) { go(Screen.APPS) } },
-            { NavRow("At a glance", "Weather, sports, finance and alerts", Icons.Rounded.AutoAwesome) { go(Screen.GLANCE) } },
+            { NavRow("At a glance", "Weather, calendar, sports and alerts", Icons.Rounded.AutoAwesome) { go(Screen.GLANCE) } },
         )
         Spacer(Modifier.height(12.dp))
         Group(

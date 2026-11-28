@@ -7,6 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /** Fondo de la isla. */
 @Serializable
@@ -30,7 +35,6 @@ enum class GlanceView(val label: String) {
     WEATHER("Weather"),
     CALENDAR("Calendar"),
     SPORTS("Sports"),
-    FINANCE("Finance"),
     ALERTS("Alerts"),
 }
 
@@ -222,7 +226,6 @@ data class IslandSettings(
     val glanceTeams: String = "",
     /** Calendario: mostrar también los eventos de todo el día. */
     val glanceAllDay: Boolean = true,
-    val glanceSymbols: String = "^GSPC, AAPL, BTC-USD",
 
     // ── Apps ─────────────────────────────────────────────────────────
     val blockedApps: Set<String> = emptySet(),
@@ -260,6 +263,15 @@ object SettingsStore {
         return true
     }
 
-    private fun decode(text: String): IslandSettings? =
-        runCatching { json.decodeFromString(IslandSettings.serializer(), text) }.getOrNull()
+    /** Vistas que ya no existen (Finance se quitó en 1.3.0): se descartan para no perder el resto de ajustes. */
+    private val REMOVED_VIEWS = setOf("FINANCE")
+
+    private fun decode(text: String): IslandSettings? = runCatching {
+        val obj = json.parseToJsonElement(text).jsonObject
+        val views = obj["glanceViews"]?.jsonArray
+        val clean = if (views == null) obj else JsonObject(
+            obj + ("glanceViews" to JsonArray(views.filter { it.jsonPrimitive.content !in REMOVED_VIEWS })),
+        )
+        json.decodeFromJsonElement(IslandSettings.serializer(), clean)
+    }.getOrNull()
 }

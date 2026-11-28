@@ -38,7 +38,7 @@
 ---
 
 Material Island turns the camera cutout into a live surface for whatever is happening on your phone: music, calls,
-timers, navigation, downloads, charging, verification codes, unread chats, plus weather, scores and stocks with
+timers, navigation, downloads, charging, verification codes, unread chats, plus weather, your next calendar event and scores with
 **At a glance**. It runs on any phone with Android 12 or newer, including Xiaomi, Redmi and POCO.
 
 ## Why these permissions?
@@ -99,7 +99,7 @@ timers, navigation, downloads, charging, verification codes, unread chats, plus 
 | **Messages** | Unread chats as bubbles to the left of the island | Read and reply without leaving the app you're in |
 | **Verification codes** | Wide pill showing the code; tap to copy | — |
 | **Charging** | Wavy ring with the level counting up | Time to full, normal or fast, cable or wireless, watts, temperature |
-| **At a glance** | Weather, live score, stock move or alert count next to the camera; swipe to switch | Weather with the next hours, live scores, your stocks with real logos, alerts |
+| **At a glance** | Weather, next event, live score or alert count next to the camera; swipe to switch | Weather with the next hours, next event from Google Calendar with a join button, live scores, alerts |
 | **System** | Low battery, Bluetooth, ringer mode, airplane mode, headphones | — |
 
 And also:
@@ -179,7 +179,7 @@ adb shell cmd statusbar send-disable-flag notification-icons   # use "none" to b
 ## Privacy and internet
 
 - The island itself never goes online, never tracks you and never shows ads. There is no account and no analytics.
-- **At a glance** is the only feature that uses the internet, and only if you turn it on: weather from Open-Meteo, scores from ESPN, quotes from Yahoo Finance, and company logos from Google's icon service (cached on the phone). Offline, only that card pauses.
+- **At a glance** is the only feature that uses the internet, and only if you turn it on: weather from Open-Meteo and scores from ESPN. The calendar is read on the phone and never leaves it. Offline, only weather and scores pause.
 - The app can check GitHub for a new version when you open it. You can turn that off in **About**.
 - On a Pixel, one button in At a glance settings takes you to the launcher setting where you can turn Google's own At a glance on or off.
 

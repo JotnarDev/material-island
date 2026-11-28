@@ -9,7 +9,7 @@ Qué aparece en la isla
 • Carga: un anillo ondulado y una tarjeta con tiempo restante, velocidad y temperatura
 • Códigos de verificación: cópialos con un toque
 • Chats sin leer como burbujas junto a la cámara
-• At a glance (opcional): tiempo, marcadores en vivo, bolsa y alertas
+• At a glance (opcional): tiempo, próximo evento del calendario, marcadores en vivo y alertas
 • Accesos directos: toca la cámara en reposo para abrir los que elijas
 
 A tu gusto
@@ -27,6 +27,6 @@ Permisos
 • Internet solo lo usa At a glance, y solo si lo activas.
 
 Servicios de red
-At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo, los marcadores de ESPN, las cotizaciones de Yahoo Finance y los logos de empresas del servicio de favicons de Google. El resto de la app funciona sin conexión.
+At a glance viene apagado. Si lo activas, descarga el tiempo de Open-Meteo y los marcadores de ESPN. El calendario se lee en el teléfono y nunca sale de él. El resto de la app funciona sin conexión.
 
 Funciona en Android 12 o superior, también en Xiaomi, Redmi y POCO. Gratis y sin cuenta. Solo hay un pequeño anuncio en las pantallas de ajustes, nunca en la isla. ¿Prefieres sin anuncios? La versión de código abierto de GitHub y F-Droid no tiene ninguno.
